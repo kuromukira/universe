@@ -3,12 +3,12 @@
 namespace SimpleCosmos;
 
 /// <summary>Inherit repositories to implement SimpleCosmos</summary>
-public abstract class BaseCosmos<T> : IDisposable, ISimpleCosmos<T> where T : SimpleCosmosEntity
+public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : ICosmosEntity
 {
     private readonly Container Container;
     private bool DisposedValue;
 
-    protected BaseCosmos(Database db, string container, string partitionKey)
+    protected SimpleCosmos(Database db, string container, string partitionKey)
         => Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
 
     private static QueryDefinition CreateQuery(IList<QueryParameter> parameters)
@@ -107,9 +107,9 @@ public abstract class BaseCosmos<T> : IDisposable, ISimpleCosmos<T> where T : Si
             if (queryResponse.HasMoreResults)
             {
                 FeedResponse<T> next = await queryResponse.ReadNextAsync();
-                return next.Any() ? next.Resource.FirstOrDefault() : null;
+                return next.Any() ? next.Resource.FirstOrDefault() : default;
             }
-            else return null;
+            else return default;
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -169,7 +169,7 @@ public abstract class BaseCosmos<T> : IDisposable, ISimpleCosmos<T> where T : Si
         DisposedValue = true;
     }
 
-    ~BaseCosmos() => Dispose(disposing: false);
+    ~SimpleCosmos() => Dispose(disposing: false);
 
     public void Dispose()
     {

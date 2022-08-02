@@ -1,7 +1,7 @@
-﻿namespace SimpleCosmos.Domain;
+﻿namespace SimpleCosmos.Model;
 
-/// <summary>Base class for Cosmos Entities</summary>
-public abstract class SimpleCosmosEntity
+/// <summary>Base interface for Cosmos Entities</summary>
+public interface ICosmosEntity
 {
     /// <summary>Unique GUID</summary>
     [JsonPropertyName("id")]

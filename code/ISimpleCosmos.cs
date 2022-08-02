@@ -1,6 +1,6 @@
 ﻿namespace SimpleCosmos.Interfaces;
 
-public interface ISimpleCosmos<T> where T : SimpleCosmosEntity
+public interface ISimpleCosmos<T> where T : ICosmosEntity
 {
     /// <summary>
     /// Create a new model in the database
