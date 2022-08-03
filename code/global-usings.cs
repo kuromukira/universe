@@ -7,5 +7,4 @@ global using System.Threading.Tasks;
 global using Microsoft.Azure.Cosmos;
 global using SimpleCosmos.Exception;
 global using SimpleCosmos.Interfaces;
-global using SimpleCosmos.Model;
 global using SimpleCosmos.Options.Query;

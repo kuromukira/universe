@@ -1,4 +1,4 @@
-﻿namespace SimpleCosmos.Model;
+﻿namespace SimpleCosmos.Interfaces;
 
 /// <summary>Base interface for Cosmos Entities</summary>
 public interface ICosmosEntity
