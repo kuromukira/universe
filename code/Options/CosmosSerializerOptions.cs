@@ -3,16 +3,19 @@ using Azure.Core.Serialization;
 
 namespace SimpleCosmos.Options;
 
+/// <summary></summary>
 public class SimpleCosmosSerializer : CosmosSerializer
 {
     private readonly JsonObjectSerializer SystemTextJsonSerializer;
 
+    /// <summary></summary>
     public SimpleCosmosSerializer() => SystemTextJsonSerializer = new(new()
     {
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     });
 
+    /// <summary></summary>
     public override T FromStream<T>(Stream stream)
     {
         using (stream)
@@ -27,6 +30,7 @@ public class SimpleCosmosSerializer : CosmosSerializer
         }
     }
 
+    /// <summary></summary>
     public override Stream ToStream<T>(T input)
     {
         MemoryStream streamPayload = new();

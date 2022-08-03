@@ -8,6 +8,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
     private readonly Container Container;
     private bool DisposedValue;
 
+    /// <summary></summary>
     protected SimpleCosmos(Database db, string container, string partitionKey)
         => Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
 
@@ -34,12 +35,12 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
 
     async Task<string> ISimpleCosmos<T>.Create(T model)
     {
-        if (string.IsNullOrWhiteSpace(model.Id))
-            model.Id = Guid.NewGuid().ToString();
+        if (string.IsNullOrWhiteSpace(model.id))
+            model.id = Guid.NewGuid().ToString();
         model.AddedOn = DateTime.UtcNow;
 
         _ = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
-        return model.Id;
+        return model.id;
     }
 
     async Task ISimpleCosmos<T>.Create(IList<QueryParameter> parameters, T model)
@@ -54,7 +55,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
                 throw new SimpleCosmosException($"{typeof(T).Name} already exists.");
         }
 
-        model.Id = Guid.NewGuid().ToString();
+        model.id = Guid.NewGuid().ToString();
         model.AddedOn = DateTime.UtcNow;
 
         _ = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
@@ -64,10 +65,10 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
     {
         try
         {
-            ItemResponse<T> response = await Container.ReadItemAsync<T>(model.Id, new PartitionKey(model.PartitionKey));
+            ItemResponse<T> response = await Container.ReadItemAsync<T>(model.id, new PartitionKey(model.PartitionKey));
             model.ModifiedOn = DateTime.UtcNow;
 
-            response = await Container.ReplaceItemAsync(model, response.Resource.Id, new PartitionKey(response.Resource.PartitionKey));
+            response = await Container.ReplaceItemAsync(model, response.Resource.id, new PartitionKey(response.Resource.PartitionKey));
             return response.Resource;
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -159,6 +160,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
     }
 
+    /// <summary></summary>
     protected virtual void Dispose(bool disposing)
     {
         if (DisposedValue) return;
@@ -169,8 +171,10 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         DisposedValue = true;
     }
 
+    /// <summary></summary>
     ~SimpleCosmos() => Dispose(disposing: false);
 
+    /// <summary></summary>
     public void Dispose()
     {
         Dispose(disposing: true);

@@ -1,5 +1,6 @@
 ﻿namespace SimpleCosmos.Interfaces;
 
+/// <summary></summary>
 public interface ISimpleCosmos<T> where T : ICosmosEntity
 {
     /// <summary>

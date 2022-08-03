@@ -2,6 +2,7 @@
 
 namespace SimpleCosmos.Exception;
 
+/// <summary></summary>
 [Serializable]
 public sealed class SimpleCosmosException : System.Exception
 {
