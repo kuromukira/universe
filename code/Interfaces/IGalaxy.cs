@@ -1,7 +1,7 @@
-﻿namespace SimpleCosmos.Interfaces;
+﻿namespace Universe.Interfaces;
 
 /// <summary></summary>
-public interface ISimpleCosmos<T> where T : ICosmosEntity
+public interface IGalaxy<T> where T : ICosmicEntity
 {
     /// <summary>
     /// Create a new model in the database
