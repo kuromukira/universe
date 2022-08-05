@@ -15,12 +15,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
     private static QueryDefinition CreateQuery(IList<QueryParameter> parameters, IList<string> columns = null)
     {
-        StringBuilder columnBuilder = new StringBuilder();
-        if (columns is not null && columns.Any())
-            columnBuilder.Append(string.Join(", ", columns));
-        else columnBuilder.Append('*');
+        string columnsBuilder = "*";
+        if (columns.Any())
+            columnsBuilder = string.Join(", ", columns.Select(c => $"c.{c}").ToList());
 
-        StringBuilder queryBuilder = new($"SELECT {columnBuilder} FROM c");
+        StringBuilder queryBuilder = new($"SELECT {columnsBuilder} FROM c");
         if (parameters.Any())
         {
             queryBuilder.Append($" WHERE {WhereClauseBuilder(parameters[0])}");
@@ -40,9 +39,9 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
         static string WhereClauseBuilder(QueryParameter parameter) => parameter.Operator switch
         {
-            Query.Operator.In => $"ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})",
-            Query.Operator.Notin => $"NOT ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})",
-            _ => $"{$"c.{parameter.Column}"} {parameter.Operator} {$"@{parameter.Column}"}",
+            Query.Operator.In => $"ARRAY_CONTAINS(c.{parameter.Column}, @{parameter.Column})",
+            Query.Operator.Notin => $"NOT ARRAY_CONTAINS(c.{parameter.Column}, @{parameter.Column})",
+            _ => $"c.{parameter.Column} {parameter.Operator} @{parameter.Column}",
         };
     }
 
