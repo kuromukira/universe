@@ -3,6 +3,9 @@
 /// <summary></summary>
 public static class Query
 {
+    /// <summary>Page defintion for paginated queries</summary>
+    public record Page(int Size, string ContinuationToken);
+
     /// <summary>AND / OR where clause operators</summary>
     public struct Where
     {
@@ -45,11 +48,5 @@ public static class Query
 
         /// <summary></summary>
         public const string NotLike = "NOT LIKE";
-
-        /// <summary></summary>
-        public const string IsNull = "IS NULL";
-
-        /// <summary></summary>
-        public const string IsNotNull = "IS NOT NULL";
     }
 }
