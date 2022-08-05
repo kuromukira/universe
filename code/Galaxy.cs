@@ -19,12 +19,28 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             columnBuilder.Append(string.Join(", ", columns));
         else columnBuilder.Append("*");
 
-        StringBuilder queryBuilder = new($"SELECT {columnBuilder.ToString()} FROM c");
+        StringBuilder queryBuilder = new($"SELECT {columnBuilder} FROM c");
         if (parameters.Any())
         {
             queryBuilder.Append($" WHERE c.{parameters[0].Column} {parameters[0].Operator} @{parameters[0].Column}");
             foreach (QueryParameter parameter in parameters.Where(p => p.Column != parameters[0].Column).ToList())
-                queryBuilder.Append($" {parameter.Where} {(parameter.IsReverse ? $"@{parameter.Column}" : $"c.{parameter.Column}")} {parameter.Operator} {(parameter.IsReverse ? $"c.{parameter.Column}" : $"@{parameter.Column}")}");
+            {
+                switch(parameter.Operator)
+                {
+                    case Query.Operator.In:
+                        queryBuilder.Append($" {parameter.Where} ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})");
+                        break;
+
+                    case Query.Operator.Notin:
+                        queryBuilder.Append($" {parameter.Where} NOT ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})");
+                        break;
+
+                    default:
+                        queryBuilder.Append($" {parameter.Where} {$"c.{parameter.Column}"} {parameter.Operator} {$"@{parameter.Column}"}");
+                        break;
+
+                }
+            }
         }
 
         QueryDefinition query = new(queryBuilder.ToString());

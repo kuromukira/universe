@@ -45,11 +45,5 @@ public static class Query
 
         /// <summary></summary>
         public const string NotLike = "NOT LIKE";
-
-        /// <summary></summary>
-        public const string IsNull = "IS NULL";
-
-        /// <summary></summary>
-        public const string IsNotNull = "IS NOT NULL";
     }
 }
