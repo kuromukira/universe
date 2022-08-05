@@ -1,15 +1,15 @@
 ﻿using System.Net;
 
-namespace SimpleCosmos;
+namespace Universe;
 
-/// <summary>Inherit repositories to implement SimpleCosmos</summary>
-public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : ICosmosEntity
+/// <summary>Inherit repositories to implement Universe</summary>
+public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntity
 {
     private readonly Container Container;
     private bool DisposedValue;
 
     /// <summary></summary>
-    protected SimpleCosmos(Database db, string container, string partitionKey)
+    protected Galaxy(Database db, string container, string partitionKey)
         => Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
 
     private static QueryDefinition CreateQuery(IList<QueryParameter> parameters)
@@ -33,7 +33,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         return query;
     }
 
-    async Task<string> ISimpleCosmos<T>.Create(T model)
+    async Task<string> IGalaxy<T>.Create(T model)
     {
         if (string.IsNullOrWhiteSpace(model.id))
             model.id = Guid.NewGuid().ToString();
@@ -43,7 +43,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         return model.id;
     }
 
-    async Task ISimpleCosmos<T>.Create(IList<QueryParameter> parameters, T model)
+    async Task IGalaxy<T>.Create(IList<QueryParameter> parameters, T model)
     {
         QueryDefinition query = CreateQuery(parameters);
 
@@ -52,7 +52,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         {
             FeedResponse<T> next = await queryResponse.ReadNextAsync();
             if (next.Count > 0)
-                throw new SimpleCosmosException($"{typeof(T).Name} already exists.");
+                throw new UniverseException($"{typeof(T).Name} already exists.");
         }
 
         model.id = Guid.NewGuid().ToString();
@@ -61,7 +61,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         _ = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
     }
 
-    async Task<T> ISimpleCosmos<T>.Modify(T model)
+    async Task<T> IGalaxy<T>.Modify(T model)
     {
         try
         {
@@ -73,7 +73,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            throw new SimpleCosmosException($"{typeof(T).Name} does not exist.");
+            throw new UniverseException($"{typeof(T).Name} does not exist.");
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
@@ -81,7 +81,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
     }
 
-    async Task ISimpleCosmos<T>.Remove(string id, string partitionKey)
+    async Task IGalaxy<T>.Remove(string id, string partitionKey)
     {
         try
         {
@@ -89,7 +89,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            throw new SimpleCosmosException($"{typeof(T).Name} does not exist.");
+            throw new UniverseException($"{typeof(T).Name} does not exist.");
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
@@ -97,7 +97,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
     }
 
-    async Task<T> ISimpleCosmos<T>.Get(QueryParameter parameter)
+    async Task<T> IGalaxy<T>.Get(QueryParameter parameter)
     {
         try
         {
@@ -114,7 +114,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            throw new SimpleCosmosException($"{typeof(T).Name} does not exist.");
+            throw new UniverseException($"{typeof(T).Name} does not exist.");
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
@@ -122,7 +122,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
     }
 
-    async Task<T> ISimpleCosmos<T>.Get(string id, string partitionKey)
+    async Task<T> IGalaxy<T>.Get(string id, string partitionKey)
     {
         try
         {
@@ -131,7 +131,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            throw new SimpleCosmosException($"{typeof(T).Name} does not exist.");
+            throw new UniverseException($"{typeof(T).Name} does not exist.");
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
@@ -139,7 +139,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
         }
     }
 
-    async Task<IList<T>> ISimpleCosmos<T>.Get(IList<QueryParameter> parameters)
+    async Task<IList<T>> IGalaxy<T>.Get(IList<QueryParameter> parameters)
     {
         try
         {
@@ -172,7 +172,7 @@ public abstract class SimpleCosmos<T> : IDisposable, ISimpleCosmos<T> where T : 
     }
 
     /// <summary></summary>
-    ~SimpleCosmos() => Dispose(disposing: false);
+    ~Galaxy() => Dispose(disposing: false);
 
     /// <summary></summary>
     public void Dispose()

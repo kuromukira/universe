@@ -1,15 +1,15 @@
 ﻿using System.IO;
 using Azure.Core.Serialization;
 
-namespace SimpleCosmos.Options;
+namespace Universe.Options;
 
 /// <summary></summary>
-public class SimpleCosmosSerializer : CosmosSerializer
+public class UniverseSerializer : CosmosSerializer
 {
     private readonly JsonObjectSerializer SystemTextJsonSerializer;
 
     /// <summary></summary>
-    public SimpleCosmosSerializer() => SystemTextJsonSerializer = new(new()
+    public UniverseSerializer() => SystemTextJsonSerializer = new(new()
     {
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull

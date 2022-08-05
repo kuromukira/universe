@@ -1,7 +1,7 @@
-﻿namespace SimpleCosmos.Interfaces;
+﻿namespace Universe.Interfaces;
 
 /// <summary>Base interface for Cosmos Entities</summary>
-public interface ICosmosEntity
+public interface ICosmicEntity
 {
     /// <summary>Unique GUID</summary>
 #pragma warning disable IDE1006 // Naming Styles

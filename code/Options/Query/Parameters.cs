@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace SimpleCosmos.Options.Query;
+namespace Universe.Options.Query;
 
 /// <summary>
 /// Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
