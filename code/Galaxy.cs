@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using UniverseQuery.Responses;
 
 namespace Universe;
 
@@ -54,17 +55,17 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         return query;
     }
 
-    async Task<string> IGalaxy<T>.Create(T model)
+    async Task<(Gravity, string)> IGalaxy<T>.Create(T model)
     {
         if (string.IsNullOrWhiteSpace(model.id))
             model.id = Guid.NewGuid().ToString();
         model.AddedOn = DateTime.UtcNow;
 
-        _ = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
-        return model.id;
+        ItemResponse<T> response = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
+        return (new(response.RequestCharge, null), model.id);
     }
 
-    async Task IGalaxy<T>.Create(IList<QueryParameter> parameters, T model)
+    async Task<Gravity> IGalaxy<T>.Create(IList<QueryParameter> parameters, T model)
     {
         QueryDefinition query = CreateQuery(parameters: parameters);
 
@@ -79,10 +80,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         model.id = Guid.NewGuid().ToString();
         model.AddedOn = DateTime.UtcNow;
 
-        _ = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
+        ItemResponse<T> response = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
+        return new(response.RequestCharge, null);
     }
 
-    async Task<T> IGalaxy<T>.Modify(T model)
+    async Task<(Gravity, T)> IGalaxy<T>.Modify(T model)
     {
         try
         {
@@ -90,7 +92,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             model.ModifiedOn = DateTime.UtcNow;
 
             response = await Container.ReplaceItemAsync(model, response.Resource.id, new PartitionKey(response.Resource.PartitionKey));
-            return response.Resource;
+            return (new(response.RequestCharge, null), response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -102,11 +104,12 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task IGalaxy<T>.Remove(string id, string partitionKey)
+    async Task<Gravity> IGalaxy<T>.Remove(string id, string partitionKey)
     {
         try
         {
-            _ = await Container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
+            ItemResponse<T> response = await Container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
+            return new(response.RequestCharge, null);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -118,12 +121,12 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<T> IGalaxy<T>.Get(string id, string partitionKey)
+    async Task<(Gravity, T)> IGalaxy<T>.Get(string id, string partitionKey)
     {
         try
         {
             ItemResponse<T> response = await Container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
-            return response.Resource;
+            return (new(response.RequestCharge, null), response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -135,18 +138,18 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<T> GetOneFromQuery(QueryDefinition query)
+    async Task<(Gravity, T)> GetOneFromQuery(QueryDefinition query)
     {
         using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
         if (queryResponse.HasMoreResults)
         {
             FeedResponse<T> next = await queryResponse.ReadNextAsync();
-            return next.Any() ? next.Resource.FirstOrDefault() : default;
+            return (new(next.RequestCharge, null), next.Any() ? next.Resource.FirstOrDefault() : default);
         }
-        else return default;
+        else return new(new(0, null), default);
     }
 
-    async Task<T> IGalaxy<T>.Get(QueryParameter parameter, IList<string> columns)
+    async Task<(Gravity, T)> IGalaxy<T>.Get(QueryParameter parameter, IList<string> columns)
     {
         try
         {
@@ -163,7 +166,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<T> IGalaxy<T>.Get(IList<QueryParameter> parameters, IList<string> columns)
+    async Task<(Gravity, T)> IGalaxy<T>.Get(IList<QueryParameter> parameters, IList<string> columns)
     {
         try
         {
@@ -180,20 +183,22 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<IList<T>> GetListFromQuery(QueryDefinition query)
+    async Task<(Gravity, IList<T>)> GetListFromQuery(QueryDefinition query)
     {
+        double requestCharge = 0;
         List<T> collection = new();
         using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
         while (queryResponse.HasMoreResults)
         {
             FeedResponse<T> next = await queryResponse.ReadNextAsync();
             collection.AddRange(next);
+            requestCharge += next.RequestCharge;
         }
 
-        return collection;
+        return (new(requestCharge, null), collection);
     }
 
-    async Task<IList<T>> IGalaxy<T>.List(QueryParameter parameter, IList<string> columns)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(QueryParameter parameter, IList<string> columns)
     {
         try
         {
@@ -206,7 +211,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<IList<T>> IGalaxy<T>.List(IList<QueryParameter> parameters, IList<string> columns)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<QueryParameter> parameters, IList<string> columns)
     {
         try
         {
@@ -219,12 +224,13 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Query.Page, IList<T>)> IGalaxy<T>.Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns)
     {
         try
         {
             QueryDefinition query = CreateQuery(columns: columns, parameters: parameters);
 
+            double requestUnit = 0;
             string continuationToken = string.Empty;
             List<T> collection = new();
             using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query,
@@ -235,6 +241,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             {
                 FeedResponse<T> next = await queryResponse.ReadNextAsync();
                 collection.AddRange(next);
+                requestUnit += next.RequestCharge;
                 if (next.Count > 0)
                 {
                     continuationToken = next.ContinuationToken;
@@ -242,7 +249,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 }
             }
 
-            return (new(page.Size, continuationToken), collection);
+            return (new(requestUnit, continuationToken), collection);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {

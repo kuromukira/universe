@@ -1,4 +1,6 @@
-﻿namespace Universe.Interfaces;
+﻿using UniverseQuery.Responses;
+
+namespace Universe.Interfaces;
 
 /// <summary></summary>
 public interface IGalaxy<T> where T : ICosmicEntity
@@ -6,50 +8,50 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Create a new model in the database
     /// </summary>
-    Task<string> Create(T model);
+    Task<(Gravity, string)> Create(T model);
 
     /// <summary>
     /// Create a new model in the database
     /// </summary>
-    Task Create(IList<QueryParameter> parameters, T model);
+    Task<Gravity> Create(IList<QueryParameter> parameters, T model);
 
     /// <summary>
     /// Modify a model in the database
     /// </summary>
-    Task<T> Modify(T model);
+    Task<(Gravity, T)> Modify(T model);
 
     /// <summary>
     /// Remove one model from the database
     /// </summary>
-    Task Remove(string id, string partitionKey);
+    Task<Gravity> Remove(string id, string partitionKey);
 
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<T> Get(string id, string partitionKey);
+    Task<(Gravity, T)> Get(string id, string partitionKey);
 
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<T> Get(QueryParameter parameter, IList<string> columns = null);
+    Task<(Gravity, T)> Get(QueryParameter parameter, IList<string> columns = null);
 
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<T> Get(IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<(Gravity, T)> Get(IList<QueryParameter> parameters, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<IList<T>> List(QueryParameter parameter, IList<string> columns = null);
+    Task<(Gravity, IList<T>)> List(QueryParameter parameter, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<IList<T>> List(IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<(Gravity, IList<T>)> List(IList<QueryParameter> parameters, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Query.Page, IList<T>)> Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<(Gravity, IList<T>)> Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns = null);
 }
