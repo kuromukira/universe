@@ -1,4 +1,4 @@
-﻿namespace SimpleCosmos.Options.Query;
+﻿namespace Universe.Options.Query;
 
 /// <summary></summary>
 public static class Query
