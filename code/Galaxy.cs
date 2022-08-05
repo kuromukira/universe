@@ -12,9 +12,14 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     protected Galaxy(Database db, string container, string partitionKey)
         => Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
 
-    private static QueryDefinition CreateQuery(IList<QueryParameter> parameters)
+    private static QueryDefinition CreateQuery(IList<QueryParameter> parameters, IList<string> columns = null)
     {
-        StringBuilder queryBuilder = new("SELECT * FROM c");
+        StringBuilder columnBuilder = new StringBuilder();
+        if (columns is not null && columns.Any())
+            columnBuilder.Append(string.Join(", ", columns));
+        else columnBuilder.Append("*");
+
+        StringBuilder queryBuilder = new($"SELECT {columnBuilder.ToString()} FROM c");
         if (parameters.Any())
         {
             queryBuilder.Append($" WHERE c.{parameters[0].Column} {parameters[0].Operator} @{parameters[0].Column}");
@@ -45,7 +50,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
     async Task IGalaxy<T>.Create(IList<QueryParameter> parameters, T model)
     {
-        QueryDefinition query = CreateQuery(parameters);
+        QueryDefinition query = CreateQuery(parameters: parameters);
 
         using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
         if (queryResponse.HasMoreResults)
@@ -97,12 +102,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<T> IGalaxy<T>.Get(QueryParameter parameter)
+    async Task<T> IGalaxy<T>.Get(QueryParameter parameter, IList<string> columns)
     {
         try
         {
-            QueryDefinition query = new QueryDefinition($"SELECT * FROM c WHERE c.{parameter.Column} {parameter.Operator} @{parameter.Column}")
-                .WithParameter($"@{parameter.Column}", parameter.Value);
+            QueryDefinition query = CreateQuery(parameters: new[] { parameter }, columns: columns);
 
             using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
             if (queryResponse.HasMoreResults)
@@ -139,11 +143,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<IList<T>> IGalaxy<T>.Get(IList<QueryParameter> parameters)
+    async Task<IList<T>> IGalaxy<T>.Get(IList<QueryParameter> parameters, IList<string> columns)
     {
         try
         {
-            QueryDefinition query = CreateQuery(parameters);
+            QueryDefinition query = CreateQuery(columns: columns, parameters: parameters);
             List<T> collection = new();
             using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
             while (queryResponse.HasMoreResults)

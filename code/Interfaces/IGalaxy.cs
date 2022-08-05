@@ -26,7 +26,7 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<T> Get(QueryParameter parameter);
+    Task<T> Get(QueryParameter parameter, IList<string> columns = null);
 
     /// <summary>
     /// Get one model from the database
@@ -36,5 +36,5 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<IList<T>> Get(IList<QueryParameter> parameters);
+    Task<IList<T>> Get(IList<QueryParameter> parameters, IList<string> columns = null);
 }
