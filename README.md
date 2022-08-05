@@ -1,4 +1,4 @@
-# simple-cosmos
+# Universe
 A simpler way of querying a CosmosDb Namespace
 
 ## How-to:
