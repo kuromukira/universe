@@ -118,30 +118,6 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<T> IGalaxy<T>.Get(QueryParameter parameter, IList<string> columns)
-    {
-        try
-        {
-            QueryDefinition query = CreateQuery(parameters: new[] { parameter }, columns: columns);
-
-            using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
-            if (queryResponse.HasMoreResults)
-            {
-                FeedResponse<T> next = await queryResponse.ReadNextAsync();
-                return next.Any() ? next.Resource.FirstOrDefault() : default;
-            }
-            else return default;
-        }
-        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            throw new UniverseException($"{typeof(T).Name} does not exist.");
-        }
-        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
-        {
-            throw;
-        }
-    }
-
     async Task<T> IGalaxy<T>.Get(string id, string partitionKey)
     {
         try
@@ -159,20 +135,83 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<IList<T>> IGalaxy<T>.Get(IList<QueryParameter> parameters, IList<string> columns)
+    async Task<T> GetOneFromQuery(QueryDefinition query)
+    {
+        using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
+        if (queryResponse.HasMoreResults)
+        {
+            FeedResponse<T> next = await queryResponse.ReadNextAsync();
+            return next.Any() ? next.Resource.FirstOrDefault() : default;
+        }
+        else return default;
+    }
+
+    async Task<T> IGalaxy<T>.Get(QueryParameter parameter, IList<string> columns)
+    {
+        try
+        {
+            QueryDefinition query = CreateQuery(parameters: new[] { parameter }, columns: columns);
+            return await GetOneFromQuery(query);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new UniverseException($"{typeof(T).Name} does not exist.");
+        }
+        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
+        {
+            throw;
+        }
+    }
+
+    async Task<T> IGalaxy<T>.Get(IList<QueryParameter> parameters, IList<string> columns)
+    {
+        try
+        {
+            QueryDefinition query = CreateQuery(parameters: parameters, columns: columns);
+            return await GetOneFromQuery(query);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new UniverseException($"{typeof(T).Name} does not exist.");
+        }
+        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
+        {
+            throw;
+        }
+    }
+
+    async Task<IList<T>> GetListFromQuery(QueryDefinition query)
+    {
+        List<T> collection = new();
+        using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
+        while (queryResponse.HasMoreResults)
+        {
+            FeedResponse<T> next = await queryResponse.ReadNextAsync();
+            collection.AddRange(next);
+        }
+
+        return collection;
+    }
+
+    async Task<IList<T>> IGalaxy<T>.List(QueryParameter parameter, IList<string> columns)
+    {
+        try
+        {
+            QueryDefinition query = CreateQuery(columns: columns, parameters: new[] { parameter });
+            return await GetListFromQuery(query);
+        }
+        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
+        {
+            throw;
+        }
+    }
+
+    async Task<IList<T>> IGalaxy<T>.List(IList<QueryParameter> parameters, IList<string> columns)
     {
         try
         {
             QueryDefinition query = CreateQuery(columns: columns, parameters: parameters);
-            List<T> collection = new();
-            using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
-            while (queryResponse.HasMoreResults)
-            {
-                FeedResponse<T> next = await queryResponse.ReadNextAsync();
-                collection.AddRange(next);
-            }
-
-            return collection;
+            return await GetListFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {

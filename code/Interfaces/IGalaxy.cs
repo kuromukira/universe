@@ -26,15 +26,25 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Get one model from the database
     /// </summary>
+    Task<T> Get(string id, string partitionKey);
+
+    /// <summary>
+    /// Get one model from the database
+    /// </summary>
     Task<T> Get(QueryParameter parameter, IList<string> columns = null);
 
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<T> Get(string id, string partitionKey);
+    Task<T> Get(IList<QueryParameter> parameters, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<IList<T>> Get(IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<IList<T>> List(QueryParameter parameter, IList<string> columns = null);
+
+    /// <summary>
+    /// Get a paginated list from the database
+    /// </summary>
+    Task<IList<T>> List(IList<QueryParameter> parameters, IList<string> columns = null);
 }
