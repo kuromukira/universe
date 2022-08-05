@@ -18,30 +18,14 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         StringBuilder columnBuilder = new StringBuilder();
         if (columns is not null && columns.Any())
             columnBuilder.Append(string.Join(", ", columns));
-        else columnBuilder.Append("*");
+        else columnBuilder.Append('*');
 
         StringBuilder queryBuilder = new($"SELECT {columnBuilder} FROM c");
         if (parameters.Any())
         {
-            queryBuilder.Append($" WHERE c.{parameters[0].Column} {parameters[0].Operator} @{parameters[0].Column}");
+            queryBuilder.Append($" WHERE {WhereClauseBuilder(parameters[0])}");
             foreach (QueryParameter parameter in parameters.Where(p => p.Column != parameters[0].Column).ToList())
-            {
-                switch (parameter.Operator)
-                {
-                    case Query.Operator.In:
-                        queryBuilder.Append($" {parameter.Where} ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})");
-                        break;
-
-                    case Query.Operator.Notin:
-                        queryBuilder.Append($" {parameter.Where} NOT ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})");
-                        break;
-
-                    default:
-                        queryBuilder.Append($" {parameter.Where} {$"c.{parameter.Column}"} {parameter.Operator} {$"@{parameter.Column}"}");
-                        break;
-
-                }
-            }
+                queryBuilder.Append($" {parameter.Where} {WhereClauseBuilder(parameter)}");
         }
 
         QueryDefinition query = new(queryBuilder.ToString());
@@ -53,6 +37,13 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
 
         return query;
+
+        static string WhereClauseBuilder(QueryParameter parameter) => parameter.Operator switch
+        {
+            Query.Operator.In => $"ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})",
+            Query.Operator.Notin => $"NOT ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})",
+            _ => $"{$"c.{parameter.Column}"} {parameter.Operator} {$"@{parameter.Column}"}",
+        };
     }
 
     async Task<(Gravity, string)> IGalaxy<T>.Create(T model)
