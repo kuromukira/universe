@@ -25,7 +25,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             queryBuilder.Append($" WHERE c.{parameters[0].Column} {parameters[0].Operator} @{parameters[0].Column}");
             foreach (QueryParameter parameter in parameters.Where(p => p.Column != parameters[0].Column).ToList())
             {
-                switch(parameter.Operator)
+                switch (parameter.Operator)
                 {
                     case Query.Operator.In:
                         queryBuilder.Append($" {parameter.Where} ARRAY_CONTAINS({$"c.{parameter.Column}"}, {$"@{parameter.Column}"})");
@@ -212,6 +212,37 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         {
             QueryDefinition query = CreateQuery(columns: columns, parameters: parameters);
             return await GetListFromQuery(query);
+        }
+        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
+        {
+            throw;
+        }
+    }
+
+    async Task<(Query.Page, IList<T>)> IGalaxy<T>.Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns)
+    {
+        try
+        {
+            QueryDefinition query = CreateQuery(columns: columns, parameters: parameters);
+
+            string continuationToken = string.Empty;
+            List<T> collection = new();
+            using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query,
+                requestOptions: new() { MaxItemCount = page.Size },
+                continuationToken: string.IsNullOrWhiteSpace(page.ContinuationToken) ? null : page.ContinuationToken
+            );
+            while (queryResponse.HasMoreResults)
+            {
+                FeedResponse<T> next = await queryResponse.ReadNextAsync();
+                collection.AddRange(next);
+                if (next.Count > 0)
+                {
+                    continuationToken = next.ContinuationToken;
+                    break;
+                }
+            }
+
+            return (new(page.Size, continuationToken), collection);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {

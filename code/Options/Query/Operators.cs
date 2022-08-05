@@ -3,6 +3,9 @@
 /// <summary></summary>
 public static class Query
 {
+    /// <summary>Page defintion for paginated queries</summary>
+    public record Page(int Size, string ContinuationToken);
+
     /// <summary>AND / OR where clause operators</summary>
     public struct Where
     {

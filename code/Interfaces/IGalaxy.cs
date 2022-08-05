@@ -47,4 +47,9 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// Get a paginated list from the database
     /// </summary>
     Task<IList<T>> List(IList<QueryParameter> parameters, IList<string> columns = null);
+
+    /// <summary>
+    /// Get a paginated list from the database
+    /// </summary>
+    Task<(Query.Page, IList<T>)> Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns = null);
 }
