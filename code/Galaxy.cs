@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using UniverseQuery.Responses;
+using Universe.Response;
 
 namespace Universe;
 
