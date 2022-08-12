@@ -9,6 +9,7 @@
 		<Owners>Nor Gelera</Owners>
 		<PackageReleaseNotes>View release on https://github.com/kuromukira/universe/releases</PackageReleaseNotes>
 		<RootNamespace>Universe</RootNamespace>
+		<Configurations>Release;Debug</Configurations>
 	</PropertyGroup>
 	<PropertyGroup>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -37,7 +38,6 @@
 	<ItemGroup>
 		<Folder Include="Exception\" />
 		<Folder Include="Options\" />
-		<Folder Include="Options\Query\" />
 		<Folder Include="Responses\" />
 	</ItemGroup>
 	<ItemGroup>

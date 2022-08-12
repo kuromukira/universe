@@ -27,18 +27,22 @@ IGalaxy<MyObject> galaxy = new MyRepo(
 
 // actual use of UniverseQuery
 (Gravity g, IList<MyObject> T) = await galaxy.Paged(
-    new Q.Page(50),
-    new List<Catalyst>
+    page: new Q.Page(50),
+    catalysts: new List<Catalyst>
     {
         new(nameof(MyObject.Links), "<VALUE TO QUERY>", Operator: Q.Operator.In),
         new(nameof(MyObject.Code), "<VALUE TO QUERY>", Where: Q.Where.Or)
     },
-    new List<string>
+    columns: new List<string>
     {
         nameof(MyObject.id),
         nameof(MyObject.Code),
         nameof(MyObject.Name),
         nameof(MyObject.Description)
+    },
+    sorting: new List<Sorting.Option>
+    {
+        new(nameof(MyObject.Name), Sorting.Direction.DESC)
     }
 );
 
