@@ -1,13 +1,12 @@
-﻿using System.Data;
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 using Universe;
 using Universe.Interfaces;
 using Universe.Options;
 using Universe.Options.Query;
 using Universe.Response;
 
-string CosmosDbUri = "<GET THIS FROM AZURE>";
-string CosmosDbPrimaryKey = "<GET THIS FROM AZURE>";
+string CosmosDbUri = "<FROM AZURE>";
+string CosmosDbPrimaryKey = "<FROM AZURE>";
 
 // Imagine this part here as your dependency injection
 CosmosClient cosmosClient = new(
@@ -20,7 +19,7 @@ CosmosClient cosmosClient = new(
 );
 
 IGalaxy<MyObject> galaxy = new MyRepo(
-    db: cosmosClient.GetDatabase("<YOUR COSMOS DB NAME>"),
+    db: cosmosClient.GetDatabase("<DATABASE NAME>"),
     container: "<CONTAINER NAME>",
     partitionKey: "/<PARTITION KEY>"
 );
@@ -28,10 +27,11 @@ IGalaxy<MyObject> galaxy = new MyRepo(
 
 // actual use of UniverseQuery
 (Gravity g, IList<MyObject> T) = await galaxy.Paged(
-    new Query.Page(50, null),
-    new List<QueryParameter>
+    new Q.Page(50),
+    new List<Catalyst>
     {
-        new(nameof(MyObject.Links), "<VALUE TO QUERY>", DbType.String, Operator: Query.Operator.In)
+        new(nameof(MyObject.Links), "<VALUE TO QUERY>", Operator: Q.Operator.In),
+        new(nameof(MyObject.Code), "<VALUE TO QUERY>", Where: Q.Where.Or)
     },
     new List<string>
     {

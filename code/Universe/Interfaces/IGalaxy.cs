@@ -13,7 +13,7 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Create a new model in the database
     /// </summary>
-    Task<Gravity> Create(IList<QueryParameter> parameters, T model);
+    Task<Gravity> Create(IList<Catalyst> catalysts, T model);
 
     /// <summary>
     /// Modify a model in the database
@@ -33,25 +33,25 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<(Gravity g, T T)> Get(QueryParameter parameter, IList<string> columns = null);
+    Task<(Gravity g, T T)> Get(Catalyst catalyst, IList<string> columns = null);
 
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<(Gravity g, T T)> Get(IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<(Gravity g, T T)> Get(IList<Catalyst> catalysts, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> List(QueryParameter parameter, IList<string> columns = null);
+    Task<(Gravity g, IList<T> T)> List(Catalyst catalyst, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> List(IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<(Gravity g, IList<T> T)> List(IList<Catalyst> catalysts, IList<string> columns = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> Paged(Query.Page page, IList<QueryParameter> parameters, IList<string> columns = null);
+    Task<(Gravity g, IList<T> T)> Paged(Q.Page page, IList<Catalyst> catalysts, IList<string> columns = null);
 }

@@ -1,52 +1,77 @@
 ﻿namespace Universe.Options.Query;
 
-/// <summary></summary>
-public static class Query
+/// <summary>Query Options</summary>
+public struct Q
 {
-    /// <summary>Page defintion for paginated queries</summary>
-    public record Page(int Size, string ContinuationToken);
+    /// <summary>Page definition for paginated queries</summary>
+    public record Page(int Size, string ContinuationToken = null);
 
     /// <summary>AND / OR where clause operators</summary>
-    public struct Where
+    public enum Where
     {
-        /// <summary></summary>
-        public const string And = "AND";
-
-        /// <summary></summary>
-        public const string Or = "OR";
+        And,
+        Or
     }
 
     /// <summary>Equality operator</summary>
-    public struct Operator
+    public enum Operator
     {
-        /// <summary></summary>
-        public const string Eq = "=";
+        /// <summary>Equal</summary>
+        Eq,
 
-        /// <summary></summary>
-        public const string NotEq = "!=";
+        /// <summary>Not Equal</summary>
+        NotEq,
 
-        /// <summary></summary>
-        public const string Gt = ">";
+        /// <summary>Greater Than</summary>
+        Gt,
 
-        /// <summary></summary>
-        public const string Gte = ">=";
+        /// <summary>Greater Than Or Equal</summary>
+        Gte,
 
-        /// <summary></summary>
-        public const string Lt = "<";
+        /// <summary>Lower Than</summary>
+        Lt,
 
-        /// <summary></summary>
-        public const string Lte = "<=";
+        /// <summary>Lower Than Or Equal</summary>
+        Lte,
 
-        /// <summary></summary>
-        public const string In = "IN";
+        /// <summary>In</summary>
+        In,
 
-        /// <summary></summary>
-        public const string Notin = "NOT IN";
+        /// <summary>Not In</summary>
+        NotIn,
 
-        /// <summary></summary>
-        public const string Like = "LIKE";
+        /// <summary>Like</summary>
+        Like,
 
-        /// <summary></summary>
-        public const string NotLike = "NOT LIKE";
+        /// <summary>Not Like</summary>
+        NotLike
     }
+}
+
+public static class WhereExtension
+{
+    public static string Value(this Q.Where where) => where switch
+    {
+        Q.Where.And => "AND",
+        Q.Where.Or => "OR",
+        _ => throw new UniverseException("Unrecognized WHERE keyword")
+    };
+}
+
+public static class OperatorExtension
+{
+    public static string Value(this Q.Operator opr) => opr switch
+    {
+        Q.Operator.Eq => "=",
+        Q.Operator.NotEq => "!=",
+        Q.Operator.Gt => ">",
+        Q.Operator.Gte => ">=",
+        Q.Operator.Lt => "<",
+        Q.Operator.Lte => "<=",
+        Q.Operator.In => "IN",
+        Q.Operator.NotIn => "NOT IN",
+        Q.Operator.Like => "LIKE",
+        Q.Operator.NotLike => "NOT LIKE",
+        _ => throw new UniverseException("Unrecognized OPERATOR keyword")
+    };
 }
