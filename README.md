@@ -54,5 +54,5 @@ _ = services.AddScoped<IGalaxy<MyModel>, MyRepository>(service => new(
 
 #### Example Query:
 ```csharp
-MyModel myModel = await IGalaxy<MyModel>.Get(new QueryParameter("LastName", "last name value", DbType.String));
+MyModel myModel = await IGalaxy<MyModel>.Get(new Catalyst("LastName", "last name value", DbType.String));
 ```

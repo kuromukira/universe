@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 25.0.1700.7
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniverseQuery", "UniverseQuery.csproj", "{FAE9DE4A-1B5A-4DAC-AC5C-5FB7DA352272}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkMatter", "DarkMatter\DarkMatter.csproj", "{7B1E2F89-A898-4FFD-A7AC-6E38941AE5D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniverseQuery", "Universe\UniverseQuery.csproj", "{F4E71581-A400-4224-BAB2-984FF03210B0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FAE9DE4A-1B5A-4DAC-AC5C-5FB7DA352272}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FAE9DE4A-1B5A-4DAC-AC5C-5FB7DA352272}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FAE9DE4A-1B5A-4DAC-AC5C-5FB7DA352272}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FAE9DE4A-1B5A-4DAC-AC5C-5FB7DA352272}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B1E2F89-A898-4FFD-A7AC-6E38941AE5D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B1E2F89-A898-4FFD-A7AC-6E38941AE5D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B1E2F89-A898-4FFD-A7AC-6E38941AE5D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B1E2F89-A898-4FFD-A7AC-6E38941AE5D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4E71581-A400-4224-BAB2-984FF03210B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4E71581-A400-4224-BAB2-984FF03210B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4E71581-A400-4224-BAB2-984FF03210B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4E71581-A400-4224-BAB2-984FF03210B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
