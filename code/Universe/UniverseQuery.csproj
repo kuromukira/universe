@@ -29,12 +29,12 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <DocumentationFile>..\UniverseQuery\UniverseQuery.xml</DocumentationFile>
+	  <DocumentationFile>..\Universe\UniverseQuery.xml</DocumentationFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 	  <DebugSymbols>true</DebugSymbols>
-	  <DocumentationFile>..\UniverseQuery\UniverseQuery.xml</DocumentationFile>
+	  <DocumentationFile>..\Universe\UniverseQuery.xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
