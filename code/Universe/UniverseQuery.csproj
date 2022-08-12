@@ -11,6 +11,7 @@
 		<RootNamespace>Universe</RootNamespace>
 		<Configurations>Release;Debug</Configurations>
 	</PropertyGroup>
+
 	<PropertyGroup>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Description>A simpler way of querying a CosmosDb Namespace</Description>
@@ -26,20 +27,27 @@
 		<AssemblyVersion>1.2.0.0</AssemblyVersion>
 		<FileVersion>1.2.0.0</FileVersion>
 	</PropertyGroup>
+
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <DebugSymbols>true</DebugSymbols>
-	  <WarningLevel>4</WarningLevel>
-	  <DocumentationFile>bin\Release\net6.0\UniverseQuery.xml</DocumentationFile>
+	  <DocumentationFile>..\UniverseQuery\UniverseQuery.xml</DocumentationFile>
 	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+	  <DebugSymbols>true</DebugSymbols>
+	  <DocumentationFile>..\UniverseQuery\UniverseQuery.xml</DocumentationFile>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.29.0" />
 		<PackageReference Include="System.Text.Json" Version="6.0.5" />
 	</ItemGroup>
+
 	<ItemGroup>
 		<Folder Include="Exception\" />
 		<Folder Include="Options\" />
 		<Folder Include="Responses\" />
 	</ItemGroup>
+
 	<ItemGroup>
 		<None Include="LICENSE" Pack="true" PackagePath="" />
 	</ItemGroup>
