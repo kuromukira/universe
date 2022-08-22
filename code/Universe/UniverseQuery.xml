@@ -22,7 +22,7 @@
         <member name="T:Universe.Galaxy`1">
             <summary>Inherit repositories to implement Universe</summary>
         </member>
-        <member name="M:Universe.Galaxy`1.#ctor(Microsoft.Azure.Cosmos.Database,System.String,System.String)">
+        <member name="M:Universe.Galaxy`1.#ctor(Microsoft.Azure.Cosmos.Database,System.String,System.String,System.Boolean)">
             <summary></summary>
         </member>
         <member name="M:Universe.Galaxy`1.Dispose(System.Boolean)">
@@ -114,6 +114,12 @@
         <member name="T:Universe.Options.Query.Q.Where">
             <summary>AND / OR where clause operators</summary>
         </member>
+        <member name="F:Universe.Options.Query.Q.Where.And">
+            <summary></summary>
+        </member>
+        <member name="F:Universe.Options.Query.Q.Where.Or">
+            <summary></summary>
+        </member>
         <member name="T:Universe.Options.Query.Q.Operator">
             <summary>Equality operator</summary>
         </member>
@@ -147,6 +153,18 @@
         <member name="F:Universe.Options.Query.Q.Operator.NotLike">
             <summary>Not Like</summary>
         </member>
+        <member name="T:Universe.Options.Query.WhereExtension">
+            <summary></summary>
+        </member>
+        <member name="M:Universe.Options.Query.WhereExtension.Value(Universe.Options.Query.Q.Where)">
+            <summary></summary>
+        </member>
+        <member name="T:Universe.Options.Query.OperatorExtension">
+            <summary></summary>
+        </member>
+        <member name="M:Universe.Options.Query.OperatorExtension.Value(Universe.Options.Query.Q.Operator)">
+            <summary></summary>
+        </member>
         <member name="T:Universe.Options.Query.Catalyst">
             <summary>
             Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
@@ -177,6 +195,30 @@
         <member name="P:Universe.Options.Query.Catalyst.Operator">
             <summary>Boolean expression operator</summary>
         </member>
+        <member name="T:Universe.Options.Query.Sorting">
+            <summary></summary>
+        </member>
+        <member name="T:Universe.Options.Query.Sorting.Direction">
+            <summary></summary>
+        </member>
+        <member name="F:Universe.Options.Query.Sorting.Direction.ASC">
+            <summary>Ascending</summary>
+        </member>
+        <member name="F:Universe.Options.Query.Sorting.Direction.DESC">
+            <summary>Descending</summary>
+        </member>
+        <member name="T:Universe.Options.Query.Sorting.Option">
+            <summary></summary>
+        </member>
+        <member name="M:Universe.Options.Query.Sorting.Option.#ctor(System.String,Universe.Options.Query.Sorting.Direction)">
+            <summary></summary>
+        </member>
+        <member name="T:Universe.Options.Query.SortOptionDirectionExtension">
+            <summary></summary>
+        </member>
+        <member name="M:Universe.Options.Query.SortOptionDirectionExtension.Value(Universe.Options.Query.Sorting.Direction)">
+            <summary></summary>
+        </member>
         <member name="T:Universe.Options.UniverseSerializer">
             <summary></summary>
         </member>
@@ -188,6 +230,27 @@
         </member>
         <member name="M:Universe.Options.UniverseSerializer.ToStream``1(``0)">
             <summary></summary>
+        </member>
+        <member name="T:Universe.Response.Gravity">
+            <summary>Query execution response</summary>
+            <param name="RU">RU consumed</param>
+            <param name="ContinuationToken">Pagination Token</param>
+            <param name="Query">Query that was executed</param>
+        </member>
+        <member name="M:Universe.Response.Gravity.#ctor(System.Double,System.String,System.ValueTuple{System.String,System.Collections.Generic.IReadOnlyList{System.ValueTuple{System.String,System.Object}}})">
+            <summary>Query execution response</summary>
+            <param name="RU">RU consumed</param>
+            <param name="ContinuationToken">Pagination Token</param>
+            <param name="Query">Query that was executed</param>
+        </member>
+        <member name="P:Universe.Response.Gravity.RU">
+            <summary>RU consumed</summary>
+        </member>
+        <member name="P:Universe.Response.Gravity.ContinuationToken">
+            <summary>Pagination Token</summary>
+        </member>
+        <member name="P:Universe.Response.Gravity.Query">
+            <summary>Query that was executed</summary>
         </member>
     </members>
 </doc>

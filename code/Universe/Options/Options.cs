@@ -9,7 +9,10 @@ public struct Q
     /// <summary>AND / OR where clause operators</summary>
     public enum Where
     {
+        /// <summary></summary>
         And,
+
+        /// <summary></summary>
         Or
     }
 
@@ -48,8 +51,10 @@ public struct Q
     }
 }
 
+/// <summary></summary>
 public static class WhereExtension
 {
+    /// <summary></summary>
     public static string Value(this Q.Where where) => where switch
     {
         Q.Where.And => "AND",
@@ -58,8 +63,10 @@ public static class WhereExtension
     };
 }
 
+/// <summary></summary>
 public static class OperatorExtension
 {
+    /// <summary></summary>
     public static string Value(this Q.Operator opr) => opr switch
     {
         Q.Operator.Eq => "=",
