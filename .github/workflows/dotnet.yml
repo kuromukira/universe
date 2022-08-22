@@ -1,0 +1,41 @@
+name: .NET
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    name: Build, Pack & Publish NuGet
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    # Use specific .NET Version
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.x
+        
+    # Restore
+    - name: Restore dependencies
+      run: |
+        cd ./code
+        dotnet restore
+      
+    # Build
+    - name: Build
+      run: |
+        cd ./code
+        dotnet build --no-restore
+      
+    # Publish new version
+    - name: Publish
+      uses: brandedoutcast/publish-nuget@v2
+      with:
+        PROJECT_FILE_PATH: code/Universe/UniverseQuery.csproj
+        TAG_COMMIT: false
+        VERSION_FILE_PATH: VERSION
+        NUGET_KEY: ${{secrets.NUGET_KEY}}
+        PACKAGE_NAME: UniverseQuery
