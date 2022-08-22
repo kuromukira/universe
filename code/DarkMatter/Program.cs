@@ -47,6 +47,10 @@ IGalaxy<MyObject> galaxy = new MyRepo(
 );
 
 Console.WriteLine($"RU Spent: {g.RU}");
+Console.WriteLine(g.Query.Text);
+foreach (var p in g.Query.Parameters)
+    Console.WriteLine($"{p.Item1} = {p.Item2}");
+
 Console.ReadLine();
 
 // Object definitions
@@ -69,7 +73,13 @@ class MyObject : ICosmicEntity
 
 class MyRepo : Galaxy<MyObject>
 {
+#if DEBUG
+    public MyRepo(Database db, string container, string partitionKey) : base(db, container, partitionKey, true)
+    {
+    }
+#else
     public MyRepo(Database db, string container, string partitionKey) : base(db, container, partitionKey)
     {
     }
+#endif
 }
