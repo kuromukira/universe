@@ -9,9 +9,17 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     private readonly Container Container;
     private bool DisposedValue;
 
+    private bool RecordQuery;
+
     /// <summary></summary>
-    protected Galaxy(Database db, string container, string partitionKey)
-        => Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
+    protected Galaxy(Database db, string container, string partitionKey, bool recordQueries = false)
+    {
+        if (string.IsNullOrWhiteSpace(container) || string.IsNullOrWhiteSpace(partitionKey))
+            throw new UniverseException("Container name and PartitionKey are required");
+
+        RecordQuery = recordQueries;
+        Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
+    }
 
     private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, IList<string> columns = null, IList<Sorting.Option> sorting = null)
     {
@@ -33,7 +41,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         if (sorting is not null && sorting.Any())
         {
             queryBuilder.Append($" ORDER BY c.{sorting[0].Column} {sorting[0].Direction.Value()}");
-            foreach(Sorting.Option sort in sorting.Where(s => s.Column != sorting[0].Column).ToList())
+            foreach (Sorting.Option sort in sorting.Where(s => s.Column != sorting[0].Column).ToList())
                 queryBuilder.Append($", c.{sort.Column} {sort.Direction.Value()}");
         }
 
@@ -82,7 +90,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         model.AddedOn = DateTime.UtcNow;
 
         ItemResponse<T> response = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
-        return new(response.RequestCharge, null);
+        return new(response.RequestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default);
     }
 
     async Task<(Gravity, T)> IGalaxy<T>.Modify(T model)
@@ -145,7 +153,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         if (queryResponse.HasMoreResults)
         {
             FeedResponse<T> next = await queryResponse.ReadNextAsync();
-            return (new(next.RequestCharge, null), next.Any() ? next.Resource.FirstOrDefault() : default);
+            return (new(next.RequestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), next.Any() ? next.Resource.FirstOrDefault() : default);
         }
         else return new(new(0, null), default);
     }
@@ -196,7 +204,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             requestCharge += next.RequestCharge;
         }
 
-        return (new(requestCharge, null), collection);
+        return (new(requestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
     }
 
     async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, IList<string> columns, IList<Sorting.Option> sorting)
@@ -250,7 +258,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 }
             }
 
-            return (new(requestUnit, continuationToken), collection);
+            return (new(requestUnit, continuationToken, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {

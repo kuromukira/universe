@@ -16,25 +16,24 @@
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Description>A simpler way of querying a CosmosDb Namespace</Description>
 		<Copyright>Nor Gelera 2022</Copyright>
-		<PackageProjectUrl>https://kuromukira.github.io/simple-cosmos/</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/norgelera/simple-cosmos</RepositoryUrl>
+		<RepositoryUrl>https://github.com/norgelera/universe</RepositoryUrl>
 		<PackageTags>cosmos simple query</PackageTags>
 		<RepositoryType>Git</RepositoryType>
 		<Authors>Nor Gelera</Authors>
 		<Product>Universe</Product>
-		<Version>1.2.0</Version>
+		<Version>1.2.1</Version>
 		<PackageReleaseNotes>View release on https://github.com/kuromukira/universe/releases</PackageReleaseNotes>
-		<AssemblyVersion>1.2.0.0</AssemblyVersion>
-		<FileVersion>1.2.0.0</FileVersion>
+		<AssemblyVersion>1.2.1.0</AssemblyVersion>
+		<FileVersion>1.2.1.0</FileVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <DocumentationFile>..\UniverseQuery\UniverseQuery.xml</DocumentationFile>
+	  <DocumentationFile>..\Universe\UniverseQuery.xml</DocumentationFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 	  <DebugSymbols>true</DebugSymbols>
-	  <DocumentationFile>..\UniverseQuery\UniverseQuery.xml</DocumentationFile>
+	  <DocumentationFile>..\Universe\UniverseQuery.xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
