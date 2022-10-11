@@ -49,18 +49,18 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         QueryDefinition query = new(queryBuilder.ToString());
         if (!catalysts.Any()) return query;
         {
-            query = query.WithParameter($"@{catalysts[0].Column}", catalysts[0].Value);
+            query = query.WithParameter($"@{catalysts[0].ParameterName()}", catalysts[0].Value);
             foreach (Catalyst catalyst in catalysts.Where(p => p.Column != catalysts[0].Column).ToList())
-                query = query.WithParameter($"@{catalyst.Column}", catalyst.Value);
+                query = query.WithParameter($"@{catalyst.ParameterName()}", catalyst.Value);
         }
 
         return query;
 
         static string WhereClauseBuilder(Catalyst catalyst) => catalyst.Operator switch
         {
-            Q.Operator.In => $"ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.Column})",
-            Q.Operator.NotIn => $"NOT ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.Column})",
-            _ => $"c.{catalyst.Column} {catalyst.Operator.Value()} @{catalyst.Column}",
+            Q.Operator.In => $"ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.ParameterName()})",
+            Q.Operator.NotIn => $"NOT ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.ParameterName()})",
+            _ => $"c.{catalyst.Column} {catalyst.Operator.Value()} @{catalyst.ParameterName()}",
         };
     }
 
