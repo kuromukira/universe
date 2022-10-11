@@ -87,22 +87,22 @@
             Get one model from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.List(Universe.Options.Query.Catalyst,System.Nullable{Universe.Options.Query.Column},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.List(Universe.Options.Query.Catalyst,System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.List(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.Column},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.List(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.Paged(Universe.Options.Query.Q.Page,System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.Column},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.Paged(Universe.Options.Query.Q.Page,System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
         </member>
-        <member name="T:Universe.Options.Query.Column">
+        <member name="T:Universe.Options.Query.ColumnOptions">
             <summary></summary>
             <param name="Names">List of column names to be part of the query</param>
             <param name="IsDistinct">Adds DISTINCT in the generated query</param>
@@ -112,7 +112,7 @@
                 will be added as part of the GROUP BY clause
             </param>
         </member>
-        <member name="M:Universe.Options.Query.Column.#ctor(System.Collections.Generic.IList{System.String},System.Boolean,System.Int32,System.Boolean)">
+        <member name="M:Universe.Options.Query.ColumnOptions.#ctor(System.Collections.Generic.IList{System.String},System.Boolean,System.Int32,System.Boolean)">
             <summary></summary>
             <param name="Names">List of column names to be part of the query</param>
             <param name="IsDistinct">Adds DISTINCT in the generated query</param>
@@ -122,16 +122,16 @@
                 will be added as part of the GROUP BY clause
             </param>
         </member>
-        <member name="P:Universe.Options.Query.Column.Names">
+        <member name="P:Universe.Options.Query.ColumnOptions.Names">
             <summary>List of column names to be part of the query</summary>
         </member>
-        <member name="P:Universe.Options.Query.Column.IsDistinct">
+        <member name="P:Universe.Options.Query.ColumnOptions.IsDistinct">
             <summary>Adds DISTINCT in the generated query</summary>
         </member>
-        <member name="P:Universe.Options.Query.Column.Top">
+        <member name="P:Universe.Options.Query.ColumnOptions.Top">
             <summary>Only select the specified number of top rows</summary>
         </member>
-        <member name="P:Universe.Options.Query.Column.Count">
+        <member name="P:Universe.Options.Query.ColumnOptions.Count">
             <summary>
                 Count the number of rows. Please note that the column <paramref name="Names"/>
                 will be added as part of the GROUP BY clause

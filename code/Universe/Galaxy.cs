@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Linq;
+using System.Net;
 using Universe.Options;
 using Universe.Response;
 
@@ -25,23 +26,23 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
         // Column Options Builder
-        StringBuilder columnsBuilder = new("*");
+        string columnsInQuery = "*";
         if (columnOptions is not null)
         {
             if (columnOptions?.Names is not null && columnOptions?.Names.Count > 0)
-                columnsBuilder.Append(string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList()));
+                columnsInQuery = string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList());
 
             if ((columnOptions?.Top ?? 0) > 0)
-                columnsBuilder.Append($"TOP {columnOptions?.Top ?? 1} {columnsBuilder}");
+                columnsInQuery = $"TOP {columnOptions?.Top ?? 1} {columnsInQuery}";
 
             if (columnOptions?.IsDistinct ?? false)
-                columnsBuilder.Append($"DISTINCT {columnsBuilder}");
+                columnsInQuery = $"DISTINCT {columnsInQuery}";
 
             if (columnOptions?.Count ?? false)
             {
                 groups ??= new List<string>();
                 groups = groups.Concat(columnOptions?.Names ?? new List<string>()).Distinct().ToList();
-                columnsBuilder.Append($"{columnsBuilder}, COUNT(1) Count");
+                columnsInQuery = $"{columnsInQuery}, COUNT(1) Count";
             }
         }
 
@@ -50,7 +51,6 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             throw new UniverseException("ORDER BY is not supported in presence of GROUP BY");
 
         // Update Columns Builder with Group By
-        string columnsInQuery = columnsBuilder.ToString();
         if (columnsInQuery.Contains("*") && groups is not null && groups.Any())
             columnsInQuery.Replace("*", string.Join(", ", groups.Select(c => $"c.{c}").ToList()));
 
