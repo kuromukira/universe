@@ -22,7 +22,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
     }
 
-    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, Column? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
+    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
         // Column Options Builder
         string columnsBuilder = "*";
@@ -39,7 +39,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             if (columnOptions?.Count ?? false)
             {
                 groups ??= new List<string>();
-                groups = groups.Concat(columnOptions?.Names ?? new List<string>()).ToList();
+                groups = groups.Concat(columnOptions?.Names ?? new List<string>()).Distinct().ToList();
                 columnsBuilder = $"{columnsBuilder}, COUNT(1) Count";
             }
         }
@@ -190,7 +190,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columnOptions: new(columns));
+            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columnOptions: columns is null || !columns.Any() ? null : new(columns));
             return await GetOneFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -207,7 +207,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: new(columns));
+            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columns is null || !columns.Any() ? null : new(columns));
             return await GetOneFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -235,7 +235,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         return (new(requestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, Column? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
@@ -248,7 +248,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, Column? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
@@ -261,7 +261,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, Column? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
@@ -279,7 +279,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 FeedResponse<T> next = await queryResponse.ReadNextAsync();
                 collection.AddRange(next);
                 requestUnit += next.RequestCharge;
-                if (next.Count > 0)
+                if (next.Count > 0 && !query.QueryText.Contains("GROUP BY"))
                 {
                     continuationToken = next.ContinuationToken;
                     break;

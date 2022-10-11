@@ -52,6 +52,7 @@ Console.WriteLine($"RU Spent: {g.RU}");
 Console.WriteLine(g.Query.Text);
 foreach (var p in g.Query.Parameters)
     Console.WriteLine($"{p.Item1} = {p.Item2}");
+Console.WriteLine($"Result Rows: {T.Count}");
 
 Console.ReadLine();
 

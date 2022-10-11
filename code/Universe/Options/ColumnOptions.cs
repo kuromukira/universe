@@ -8,7 +8,7 @@
 ///     Count the number of rows. Please note that the column <paramref name="Names"/>
 ///     will be added as part of the GROUP BY clause
 /// </param>
-public record struct Column(
+public record struct ColumnOptions(
     IList<string> Names,
     bool IsDistinct = false,
     int Top = 0,
