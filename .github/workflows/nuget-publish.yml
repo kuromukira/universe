@@ -32,8 +32,9 @@ jobs:
 
     # Pack
     - name: Pack
-      run: dotnet pack code/Universe/UniverseQuery.csproj -c Release
+      run:
+        dotnet pack code/Universe/UniverseQuery.csproj -c Release
       
     # Publish
     - name: Publish
-      run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_KEY}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+      run: dotnet nuget push /home/runner/work/universe/universe/code/Universe/bin/Release/UniverseQuery.*.nupkg --api-key ${{secrets.NUGET_KEY}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
