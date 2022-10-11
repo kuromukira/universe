@@ -20,8 +20,10 @@ public record struct Catalyst(
     Q.Where Where = Q.Where.And,
     Q.Operator Operator = Q.Operator.Eq);
 
+/// <summary></summary>
 public static class CatalystExtension
 {
+    /// <summary></summary>
     public static string ParameterName(this Catalyst catalyst)
     {
         if (string.IsNullOrWhiteSpace(catalyst.Alias))

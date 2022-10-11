@@ -209,6 +209,12 @@
         <member name="P:Universe.Options.Query.Catalyst.Operator">
             <summary>Boolean expression operator</summary>
         </member>
+        <member name="T:Universe.Options.Query.CatalystExtension">
+            <summary></summary>
+        </member>
+        <member name="M:Universe.Options.Query.CatalystExtension.ParameterName(Universe.Options.Query.Catalyst)">
+            <summary></summary>
+        </member>
         <member name="T:Universe.Options.Query.Sorting">
             <summary></summary>
         </member>
