@@ -21,8 +21,12 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
     }
 
-    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, IList<string> columns = null, IList<Sorting.Option> sorting = null)
+    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, IList<string> columns = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
+        // This error blocks code execution since this is not yet supported by CosmosDb
+        if (sorting is not null && sorting.Any() && groups is not null && groups.Any())
+            throw new UniverseException("ORDER BY is not supported in presence of GROUP BY");
+
         // Column Builder
         string columnsBuilder = "*";
         if (columns is not null && columns.Any())
@@ -43,6 +47,14 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             queryBuilder.Append($" ORDER BY c.{sorting[0].Column} {sorting[0].Direction.Value()}");
             foreach (Sorting.Option sort in sorting.Where(s => s.Column != sorting[0].Column).ToList())
                 queryBuilder.Append($", c.{sort.Column} {sort.Direction.Value()}");
+        }
+
+        // Group By Builder
+        if (groups is not null && groups.Any())
+        {
+            queryBuilder.Append($" GROUP BY c.{groups[0]}");
+            foreach (string group in groups.Where(g => g != groups[0]).ToList())
+                queryBuilder.Append($", c.{group}");
         }
 
         // Parameters Builder
@@ -207,11 +219,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         return (new(requestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, IList<string> columns, IList<Sorting.Option> sorting)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, IList<string> columns, IList<Sorting.Option> sorting, IList<string> group )
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columns: columns, sorting: sorting, groups: group);
             return await GetListFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
@@ -220,11 +232,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, IList<string> columns, IList<Sorting.Option> sorting)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, IList<string> columns, IList<Sorting.Option> sorting, IList<string> group )
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns, sorting: sorting, groups: group);
             return await GetListFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
@@ -233,11 +245,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, IList<string> columns, IList<Sorting.Option> sorting)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, IList<string> columns, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns, sorting: sorting, groups: group);
 
             double requestUnit = 0;
             string continuationToken = string.Empty;
