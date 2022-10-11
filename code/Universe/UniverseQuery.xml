@@ -87,20 +87,105 @@
             Get one model from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.List(Universe.Options.Query.Catalyst,System.Collections.Generic.IList{System.String},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.List(Universe.Options.Query.Catalyst,System.Nullable{Universe.Options.Query.Column},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.List(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Collections.Generic.IList{System.String},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.List(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.Column},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.Paged(Universe.Options.Query.Q.Page,System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Collections.Generic.IList{System.String},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.Paged(Universe.Options.Query.Q.Page,System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.Column},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
+        </member>
+        <member name="T:Universe.Options.Query.Column">
+            <summary></summary>
+            <param name="Names">List of column names to be part of the query</param>
+            <param name="IsDistinct">Adds DISTINCT in the generated query</param>
+            <param name="Top">Only select the specified number of top rows</param>
+            <param name="Count">
+                Count the number of rows. Please note that the column <paramref name="Names"/>
+                will be added as part of the GROUP BY clause
+            </param>
+        </member>
+        <member name="M:Universe.Options.Query.Column.#ctor(System.Collections.Generic.IList{System.String},System.Boolean,System.Int32,System.Boolean)">
+            <summary></summary>
+            <param name="Names">List of column names to be part of the query</param>
+            <param name="IsDistinct">Adds DISTINCT in the generated query</param>
+            <param name="Top">Only select the specified number of top rows</param>
+            <param name="Count">
+                Count the number of rows. Please note that the column <paramref name="Names"/>
+                will be added as part of the GROUP BY clause
+            </param>
+        </member>
+        <member name="P:Universe.Options.Query.Column.Names">
+            <summary>List of column names to be part of the query</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Column.IsDistinct">
+            <summary>Adds DISTINCT in the generated query</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Column.Top">
+            <summary>Only select the specified number of top rows</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Column.Count">
+            <summary>
+                Count the number of rows. Please note that the column <paramref name="Names"/>
+                will be added as part of the GROUP BY clause
+            </summary>
+        </member>
+        <member name="T:Universe.Options.Query.Catalyst">
+            <summary>
+            Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
+            </summary>
+            <param name="Column">Column name</param>
+            <param name="Value">Value for the where clause associated with the Column</param>
+            <param name="Alias">
+                Column name alias excluding the @ symbol for SQL Parameters.
+                If not supplied, this will use the value from <paramref name="Column"/>
+            </param>
+            <param name="Where">Where operator (eg AND / OR)</param>
+            <param name="Operator">Boolean expression operator</param>
+        </member>
+        <member name="M:Universe.Options.Query.Catalyst.#ctor(System.String,System.Object,System.String,Universe.Options.Query.Q.Where,Universe.Options.Query.Q.Operator)">
+            <summary>
+            Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
+            </summary>
+            <param name="Column">Column name</param>
+            <param name="Value">Value for the where clause associated with the Column</param>
+            <param name="Alias">
+                Column name alias excluding the @ symbol for SQL Parameters.
+                If not supplied, this will use the value from <paramref name="Column"/>
+            </param>
+            <param name="Where">Where operator (eg AND / OR)</param>
+            <param name="Operator">Boolean expression operator</param>
+        </member>
+        <member name="P:Universe.Options.Query.Catalyst.Column">
+            <summary>Column name</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Catalyst.Value">
+            <summary>Value for the where clause associated with the Column</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Catalyst.Alias">
+            <summary>
+                Column name alias excluding the @ symbol for SQL Parameters.
+                If not supplied, this will use the value from <paramref name="Column"/>
+            </summary>
+        </member>
+        <member name="P:Universe.Options.Query.Catalyst.Where">
+            <summary>Where operator (eg AND / OR)</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Catalyst.Operator">
+            <summary>Boolean expression operator</summary>
+        </member>
+        <member name="T:Universe.Options.Query.CatalystExtension">
+            <summary></summary>
+        </member>
+        <member name="M:Universe.Options.Query.CatalystExtension.ParameterName(Universe.Options.Query.Catalyst)">
+            <summary></summary>
         </member>
         <member name="T:Universe.Options.Query.Q">
             <summary>Query Options</summary>
@@ -164,36 +249,6 @@
         </member>
         <member name="M:Universe.Options.Query.OperatorExtension.Value(Universe.Options.Query.Q.Operator)">
             <summary></summary>
-        </member>
-        <member name="T:Universe.Options.Query.Catalyst">
-            <summary>
-            Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
-            </summary>
-            <param name="Column">Column name. Excluding the @ symbol for SQL parameters</param>
-            <param name="Value">Value for the where clause associated with the Column</param>
-            <param name="Where">Where operator (eg AND / OR)</param>
-            <param name="Operator">Boolean expression operator</param>
-        </member>
-        <member name="M:Universe.Options.Query.Catalyst.#ctor(System.String,System.Object,Universe.Options.Query.Q.Where,Universe.Options.Query.Q.Operator)">
-            <summary>
-            Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
-            </summary>
-            <param name="Column">Column name. Excluding the @ symbol for SQL parameters</param>
-            <param name="Value">Value for the where clause associated with the Column</param>
-            <param name="Where">Where operator (eg AND / OR)</param>
-            <param name="Operator">Boolean expression operator</param>
-        </member>
-        <member name="P:Universe.Options.Query.Catalyst.Column">
-            <summary>Column name. Excluding the @ symbol for SQL parameters</summary>
-        </member>
-        <member name="P:Universe.Options.Query.Catalyst.Value">
-            <summary>Value for the where clause associated with the Column</summary>
-        </member>
-        <member name="P:Universe.Options.Query.Catalyst.Where">
-            <summary>Where operator (eg AND / OR)</summary>
-        </member>
-        <member name="P:Universe.Options.Query.Catalyst.Operator">
-            <summary>Boolean expression operator</summary>
         </member>
         <member name="T:Universe.Options.Query.Sorting">
             <summary></summary>

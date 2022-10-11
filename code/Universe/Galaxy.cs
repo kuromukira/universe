@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Universe.Options;
 using Universe.Response;
 
 namespace Universe;
@@ -21,12 +22,31 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
     }
 
-    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, IList<string> columns = null, IList<Sorting.Option> sorting = null)
+    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
-        // Column Builder
+        // Column Options Builder
         string columnsBuilder = "*";
-        if (columns is not null && columns.Any())
-            columnsBuilder = string.Join(", ", columns.Select(c => $"c.{c}").ToList());
+        if (columnOptions is not null)
+        {
+            columnsBuilder = string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList());
+
+            if ((columnOptions?.Top ?? 0) > 0)
+                columnsBuilder = $"TOP {columnOptions?.Top ?? 1} {columnsBuilder}";
+
+            if (columnOptions?.IsDistinct ?? false)
+                columnsBuilder = $"DISTINCT {columnsBuilder}";
+
+            if (columnOptions?.Count ?? false)
+            {
+                groups ??= new List<string>();
+                groups = groups.Concat(columnOptions?.Names ?? new List<string>()).Distinct().ToList();
+                columnsBuilder = $"{columnsBuilder}, COUNT(1) Count";
+            }
+        }
+
+        // This error blocks code execution since this is not yet supported by CosmosDb
+        if (sorting is not null && sorting.Any() && groups is not null && groups.Any())
+            throw new UniverseException("ORDER BY is not supported in presence of GROUP BY");
 
         // Where Clause Builder
         StringBuilder queryBuilder = new($"SELECT {columnsBuilder} FROM c");
@@ -45,22 +65,30 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 queryBuilder.Append($", c.{sort.Column} {sort.Direction.Value()}");
         }
 
+        // Group By Builder
+        if (groups is not null && groups.Any())
+        {
+            queryBuilder.Append($" GROUP BY c.{groups[0]}");
+            foreach (string group in groups.Where(g => g != groups[0]).ToList())
+                queryBuilder.Append($", c.{group}");
+        }
+
         // Parameters Builder
         QueryDefinition query = new(queryBuilder.ToString());
         if (!catalysts.Any()) return query;
         {
-            query = query.WithParameter($"@{catalysts[0].Column}", catalysts[0].Value);
+            query = query.WithParameter($"@{catalysts[0].ParameterName()}", catalysts[0].Value);
             foreach (Catalyst catalyst in catalysts.Where(p => p.Column != catalysts[0].Column).ToList())
-                query = query.WithParameter($"@{catalyst.Column}", catalyst.Value);
+                query = query.WithParameter($"@{catalyst.ParameterName()}", catalyst.Value);
         }
 
         return query;
 
         static string WhereClauseBuilder(Catalyst catalyst) => catalyst.Operator switch
         {
-            Q.Operator.In => $"ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.Column})",
-            Q.Operator.NotIn => $"NOT ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.Column})",
-            _ => $"c.{catalyst.Column} {catalyst.Operator.Value()} @{catalyst.Column}",
+            Q.Operator.In => $"ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.ParameterName()})",
+            Q.Operator.NotIn => $"NOT ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.ParameterName()})",
+            _ => $"c.{catalyst.Column} {catalyst.Operator.Value()} @{catalyst.ParameterName()}",
         };
     }
 
@@ -162,7 +190,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columnOptions: columns is null || !columns.Any() ? null : new(columns));
             return await GetOneFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -179,7 +207,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columns is null || !columns.Any() ? null : new(columns));
             return await GetOneFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -207,11 +235,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         return (new(requestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, IList<string> columns, IList<Sorting.Option> sorting)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columnOptions: columnOptions, sorting: sorting, groups: group);
             return await GetListFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
@@ -220,11 +248,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, IList<string> columns, IList<Sorting.Option> sorting)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columnOptions, sorting: sorting, groups: group);
             return await GetListFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
@@ -233,11 +261,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, IList<string> columns, IList<Sorting.Option> sorting)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columns: columns);
+            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columnOptions, sorting: sorting, groups: group);
 
             double requestUnit = 0;
             string continuationToken = string.Empty;
@@ -251,7 +279,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 FeedResponse<T> next = await queryResponse.ReadNextAsync();
                 collection.AddRange(next);
                 requestUnit += next.RequestCharge;
-                if (next.Count > 0)
+                if (next.Count > 0 && !query.QueryText.Contains("GROUP BY"))
                 {
                     continuationToken = next.ContinuationToken;
                     break;
