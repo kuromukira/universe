@@ -29,13 +29,11 @@ jobs:
       run: |
         cd ./code
         dotnet build --no-restore
+
+    # Pack
+    - name: Pack
+      run: dotnet pack code/Universe/UniverseQuery.csproj -c Release
       
-    # Publish new version
+    # Publish
     - name: Publish
-      uses: brandedoutcast/publish-nuget@v2
-      with:
-        PROJECT_FILE_PATH: code/Universe/UniverseQuery.csproj
-        TAG_COMMIT: false
-        VERSION_FILE_PATH: VERSION
-        NUGET_KEY: ${{secrets.NUGET_KEY}}
-        PACKAGE_NAME: UniverseQuery
+      run: dotnet nuget push *.nupkg -s https://api.nuget.org/v3/index.json --api-key ${{secrets.NUGET_KEY}} --skip-duplicate
