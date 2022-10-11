@@ -25,22 +25,23 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
         // Column Options Builder
-        string columnsBuilder = "*";
+        StringBuilder columnsBuilder = new("*");
         if (columnOptions is not null)
         {
-            columnsBuilder = string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList());
+            if (columnOptions?.Names is not null && columnOptions?.Names.Count > 0)
+                columnsBuilder.Append(string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList()));
 
             if ((columnOptions?.Top ?? 0) > 0)
-                columnsBuilder = $"TOP {columnOptions?.Top ?? 1} {columnsBuilder}";
+                columnsBuilder.Append($"TOP {columnOptions?.Top ?? 1} {columnsBuilder}");
 
             if (columnOptions?.IsDistinct ?? false)
-                columnsBuilder = $"DISTINCT {columnsBuilder}";
+                columnsBuilder.Append($"DISTINCT {columnsBuilder}");
 
             if (columnOptions?.Count ?? false)
             {
                 groups ??= new List<string>();
                 groups = groups.Concat(columnOptions?.Names ?? new List<string>()).Distinct().ToList();
-                columnsBuilder = $"{columnsBuilder}, COUNT(1) Count";
+                columnsBuilder.Append($"{columnsBuilder}, COUNT(1) Count");
             }
         }
 
@@ -48,8 +49,13 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         if (sorting is not null && sorting.Any() && groups is not null && groups.Any())
             throw new UniverseException("ORDER BY is not supported in presence of GROUP BY");
 
+        // Update Columns Builder with Group By
+        string columnsInQuery = columnsBuilder.ToString();
+        if (columnsInQuery.Contains("*") && groups is not null && groups.Any())
+            columnsInQuery.Replace("*", string.Join(", ", groups.Select(c => $"c.{c}").ToList()));
+
         // Where Clause Builder
-        StringBuilder queryBuilder = new($"SELECT {columnsBuilder} FROM c");
+        StringBuilder queryBuilder = new($"SELECT {columnsInQuery} FROM c");
         if (catalysts.Any())
         {
             queryBuilder.Append($" WHERE {WhereClauseBuilder(catalysts[0])}");
