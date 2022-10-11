@@ -16,7 +16,7 @@
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Description>A simpler way of querying a CosmosDb Namespace</Description>
 		<Copyright>Nor Gelera 2022</Copyright>
-		<RepositoryUrl>https://github.com/norgelera/universe</RepositoryUrl>
+		<RepositoryUrl>https://github.com/kuromukira/universe</RepositoryUrl>
 		<PackageTags>cosmos simple query</PackageTags>
 		<RepositoryType>Git</RepositoryType>
 		<Authors>Nor Gelera</Authors>
