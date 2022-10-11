@@ -33,13 +33,15 @@ IGalaxy<MyObject> galaxy = new MyRepo(
         new(nameof(MyObject.Links), "<VALUE TO QUERY>", Operator: Q.Operator.In),
         new(nameof(MyObject.Code), "<VALUE TO QUERY>", Where: Q.Where.Or)
     },
-    columns: new List<string>
-    {
-        nameof(MyObject.id),
-        nameof(MyObject.Code),
-        nameof(MyObject.Name),
-        nameof(MyObject.Description)
-    },
+    columnOptions: new(
+        Names: new List<string>
+        {
+            nameof(MyObject.id),
+            nameof(MyObject.Code),
+            nameof(MyObject.Name),
+            nameof(MyObject.Description)
+        }
+    ),
     sorting: new List<Sorting.Option>
     {
         new(nameof(MyObject.Name), Sorting.Direction.DESC)

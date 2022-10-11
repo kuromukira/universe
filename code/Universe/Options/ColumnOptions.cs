@@ -1,4 +1,4 @@
-﻿namespace Universe.Options;
+﻿namespace Universe.Options.Query;
 
 /// <summary></summary>
 /// <param name="Names">List of column names to be part of the query</param>

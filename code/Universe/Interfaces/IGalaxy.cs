@@ -43,15 +43,15 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> List(Catalyst catalyst, IList<string> columns = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
+    Task<(Gravity g, IList<T> T)> List(Catalyst catalyst, Column? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> List(IList<Catalyst> catalysts, IList<string> columns = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
+    Task<(Gravity g, IList<T> T)> List(IList<Catalyst> catalysts, Column? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> Paged(Q.Page page, IList<Catalyst> catalysts, IList<string> columns = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
+    Task<(Gravity g, IList<T> T)> Paged(Q.Page page, IList<Catalyst> catalysts, Column? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
 }
