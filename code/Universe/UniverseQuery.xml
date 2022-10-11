@@ -169,25 +169,39 @@
             <summary>
             Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
             </summary>
-            <param name="Column">Column name. Excluding the @ symbol for SQL parameters</param>
+            <param name="Column">Column name</param>
             <param name="Value">Value for the where clause associated with the Column</param>
+            <param name="Alias">
+                Column name alias excluding the @ symbol for SQL Parameters.
+                If not supplied, this will use the value from <paramref name="Column"/>
+            </param>
             <param name="Where">Where operator (eg AND / OR)</param>
             <param name="Operator">Boolean expression operator</param>
         </member>
-        <member name="M:Universe.Options.Query.Catalyst.#ctor(System.String,System.Object,Universe.Options.Query.Q.Where,Universe.Options.Query.Q.Operator)">
+        <member name="M:Universe.Options.Query.Catalyst.#ctor(System.String,System.Object,System.String,Universe.Options.Query.Q.Where,Universe.Options.Query.Q.Operator)">
             <summary>
             Create a generic query string from a list of parameters. The first parameter created will be the first parameter in the where clause of the query string.
             </summary>
-            <param name="Column">Column name. Excluding the @ symbol for SQL parameters</param>
+            <param name="Column">Column name</param>
             <param name="Value">Value for the where clause associated with the Column</param>
+            <param name="Alias">
+                Column name alias excluding the @ symbol for SQL Parameters.
+                If not supplied, this will use the value from <paramref name="Column"/>
+            </param>
             <param name="Where">Where operator (eg AND / OR)</param>
             <param name="Operator">Boolean expression operator</param>
         </member>
         <member name="P:Universe.Options.Query.Catalyst.Column">
-            <summary>Column name. Excluding the @ symbol for SQL parameters</summary>
+            <summary>Column name</summary>
         </member>
         <member name="P:Universe.Options.Query.Catalyst.Value">
             <summary>Value for the where clause associated with the Column</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Catalyst.Alias">
+            <summary>
+                Column name alias excluding the @ symbol for SQL Parameters.
+                If not supplied, this will use the value from <paramref name="Column"/>
+            </summary>
         </member>
         <member name="P:Universe.Options.Query.Catalyst.Where">
             <summary>Where operator (eg AND / OR)</summary>

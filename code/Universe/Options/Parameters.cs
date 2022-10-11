@@ -16,7 +16,7 @@ namespace Universe.Options.Query;
 public record struct Catalyst(
     string Column,
     object Value,
-    string Alias,
+    string Alias = null,
     Q.Where Where = Q.Where.And,
     Q.Operator Operator = Q.Operator.Eq);
 
