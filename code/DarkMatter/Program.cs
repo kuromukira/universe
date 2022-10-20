@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using System.Text.Json.Serialization;
+using Microsoft.Azure.Cosmos;
 using Universe;
 using Universe.Interfaces;
 using Universe.Options;
@@ -65,6 +66,8 @@ class MyObject : ICosmicEntity
     public string id { get; set; }
     public DateTime AddedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
+
+    [JsonIgnore]
     public string PartitionKey => Code;
 
     public string Code { get; set; }

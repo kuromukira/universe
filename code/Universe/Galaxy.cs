@@ -109,7 +109,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         return (new(response.RequestCharge, null), model.id);
     }
 
-    async Task<(Gravity g, IList<string> ids)> IGalaxy<T>.Create(IList<T> models)
+    async Task<Gravity> IGalaxy<T>.Create(IList<T> models)
     {
         try
         {
@@ -117,7 +117,6 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 throw new UniverseException("Bulk create of documents is not configured properly.");
 
             Gravity gravity = new(0, string.Empty);
-            IList<string> ids = new List<string>();
             List<Task> tasks = new(models.Count);
 
             foreach (T model in models)
@@ -127,18 +126,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 model.AddedOn = DateTime.UtcNow;
 
                 tasks.Add(Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey))
-                    .ContinueWith(async response =>
-                    {
-                        gravity = new(gravity.RU + (await response).RequestCharge, string.Empty);
-
-                        if (response.IsCompletedSuccessfully)
-                            ids.Add(model.id);
-                    }));
+                    .ContinueWith(response => gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty)));
             }
 
             await Task.WhenAll(tasks);
-
-            return (gravity, ids);
+            return gravity;
         }
         catch
         {
@@ -165,9 +157,37 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity g, IList<T> T)> IGalaxy<T>.Modify(IList<T> models)
+    async Task<Gravity> IGalaxy<T>.Modify(IList<T> models)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (!AllowBulk)
+                throw new UniverseException("Bulk modify of documents is not configured properly.");
+
+            Gravity gravity = new(0, string.Empty);
+            List<Task> tasks = new(models.Count);
+
+            foreach (T model in models)
+            {
+                model.ModifiedOn = DateTime.UtcNow;
+
+                tasks.Add(Container.ReplaceItemAsync(model, model.id, new PartitionKey(model.PartitionKey))
+                    .ContinueWith(response =>
+                    {
+                        if (!response.IsCompletedSuccessfully)
+                            throw new UniverseException(response.Exception.Flatten().InnerException.Message);
+
+                        gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty);
+                    }));
+            }
+
+            await Task.WhenAll(tasks);
+            return gravity;
+        }
+        catch
+        {
+            throw;
+        }
     }
 
     async Task<Gravity> IGalaxy<T>.Remove(string id, string partitionKey)
