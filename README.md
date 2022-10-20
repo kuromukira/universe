@@ -15,6 +15,7 @@ public class MyCosmosEntity : ICosmicEntity
   public DateTime AddedOn { get; set; }
   public DateTime ModifiedOn { get; set; }
 
+  [JsonIgnore]
   public string PartitionKey => FirstName;
 }
 ```
@@ -23,7 +24,15 @@ public class MyCosmosEntity : ICosmicEntity
 ```csharp
 public class MyRepository : Galaxy<MyModel>
 {
-    public MyRepository(Database db, string container, string partitionKey) : base(db, container, partitionKey)
+    public MyRepository(CosmosClient client, string database, string container, string partitionKey) : base(client, database, container, partitionKey)
+    {
+    }
+}
+
+// If you want to see debug information such as the full Query text executed, use the format below:
+public class MyRepository : Galaxy<MyModel>
+{
+    public MyRepository(CosmosClient client, string database, string container, string partitionKey) : base(client, database, container, partitionKey, true)
     {
     }
 }
@@ -37,6 +46,7 @@ _ = services.AddScoped(_ => new CosmosClient(
     clientOptions: new()
     {
         Serializer = new UniverseSerializer() // This is from Universe.Options
+        AllowBulkExecution = true // This will tell the underlying code to allow async bulk operations
     }
 ));
 ```
@@ -44,7 +54,8 @@ _ = services.AddScoped(_ => new CosmosClient(
 4. In your Startup.cs / Main method / Program.cs, configure your CosmosDb repository like so:
 ```csharp
 _ = services.AddScoped<IGalaxy<MyModel>, MyRepository>(service => new(
-    db: service.GetRequiredService<CosmosClient>().GetDatabase("cosmos-database"),
+    client: service.GetRequiredService<CosmosClient>(),
+    database: "database-name",
     container: "container-name",
     partitionKey: "/partitionKey"
 ));

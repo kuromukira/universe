@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using System.Text.Json.Serialization;
+using Microsoft.Azure.Cosmos;
 using Universe;
 using Universe.Interfaces;
 using Universe.Options;
@@ -14,12 +15,14 @@ CosmosClient cosmosClient = new(
     CosmosDbPrimaryKey,
     clientOptions: new()
     {
-        Serializer = new UniverseSerializer()
+        Serializer = new UniverseSerializer(),
+        AllowBulkExecution = true // This will tell the underlying code to allow async bulk operations
     }
 );
 
 IGalaxy<MyObject> galaxy = new MyRepo(
-    db: cosmosClient.GetDatabase("<DATABASE NAME>"),
+    client: cosmosClient,
+    database: "<DATABASE NAME>",
     container: "<CONTAINER NAME>",
     partitionKey: "/<PARTITION KEY>"
 );
@@ -63,6 +66,8 @@ class MyObject : ICosmicEntity
     public string id { get; set; }
     public DateTime AddedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
+
+    [JsonIgnore]
     public string PartitionKey => Code;
 
     public string Code { get; set; }
@@ -77,11 +82,11 @@ class MyObject : ICosmicEntity
 class MyRepo : Galaxy<MyObject>
 {
 #if DEBUG
-    public MyRepo(Database db, string container, string partitionKey) : base(db, container, partitionKey, true)
+    public MyRepo(CosmosClient client, string database, string container, string partitionKey) : base(client, database, container, partitionKey, true)
     {
     }
 #else
-    public MyRepo(Database db, string container, string partitionKey) : base(db, container, partitionKey)
+    public MyRepo(CosmosClient client, string database, string container, string partitionKey) : base(client, database, container, partitionKey)
     {
     }
 #endif
