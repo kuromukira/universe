@@ -22,7 +22,7 @@
         <member name="T:Universe.Galaxy`1">
             <summary>Inherit repositories to implement Universe</summary>
         </member>
-        <member name="M:Universe.Galaxy`1.#ctor(Microsoft.Azure.Cosmos.Database,System.String,System.String,System.Boolean)">
+        <member name="M:Universe.Galaxy`1.#ctor(Microsoft.Azure.Cosmos.CosmosClient,System.String,System.String,System.String,System.Boolean)">
             <summary></summary>
         </member>
         <member name="M:Universe.Galaxy`1.Dispose(System.Boolean)">
@@ -57,14 +57,19 @@
             Create a new model in the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.Create(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},`0)">
+        <member name="M:Universe.Interfaces.IGalaxy`1.Create(System.Collections.Generic.IList{`0})">
             <summary>
-            Create a new model in the database
+            Bulk create new models in the database
             </summary>
         </member>
         <member name="M:Universe.Interfaces.IGalaxy`1.Modify(`0)">
             <summary>
             Modify a model in the database
+            </summary>
+        </member>
+        <member name="M:Universe.Interfaces.IGalaxy`1.Modify(System.Collections.Generic.IList{`0})">
+            <summary>
+            Bulk modify models in the database
             </summary>
         </member>
         <member name="M:Universe.Interfaces.IGalaxy`1.Remove(System.String,System.String)">

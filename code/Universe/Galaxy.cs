@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using System.Net;
-using Universe.Options;
+﻿using System.Net;
 using Universe.Response;
 
 namespace Universe;
@@ -11,16 +9,19 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     private readonly Container Container;
     private bool DisposedValue;
 
-    private bool RecordQuery;
+    private readonly bool RecordQuery;
+    private readonly bool AllowBulk;
 
     /// <summary></summary>
-    protected Galaxy(Database db, string container, string partitionKey, bool recordQueries = false)
+    protected Galaxy(CosmosClient client, string database, string container, string partitionKey, bool recordQueries = false)
     {
         if (string.IsNullOrWhiteSpace(container) || string.IsNullOrWhiteSpace(partitionKey))
             throw new UniverseException("Container name and PartitionKey are required");
 
         RecordQuery = recordQueries;
-        Container = db.CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
+        if (client.ClientOptions is not null)
+            AllowBulk = client.ClientOptions.AllowBulkExecution;
+        Container = client.GetDatabase(database).CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
     }
 
     private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
@@ -108,33 +109,50 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         return (new(response.RequestCharge, null), model.id);
     }
 
-    async Task<Gravity> IGalaxy<T>.Create(IList<Catalyst> catalysts, T model)
+    async Task<(Gravity g, IList<string> ids)> IGalaxy<T>.Create(IList<T> models)
     {
-        QueryDefinition query = CreateQuery(catalysts: catalysts);
-
-        using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
-        if (queryResponse.HasMoreResults)
+        try
         {
-            FeedResponse<T> next = await queryResponse.ReadNextAsync();
-            if (next.Count > 0)
-                throw new UniverseException($"{typeof(T).Name} already exists.");
+            if (!AllowBulk)
+                throw new UniverseException("Bulk create of documents is not configured properly.");
+
+            Gravity gravity = new(0, string.Empty);
+            IList<string> ids = new List<string>();
+            List<Task> tasks = new(models.Count);
+
+            foreach (T model in models)
+            {
+                if (string.IsNullOrWhiteSpace(model.id))
+                    model.id = Guid.NewGuid().ToString();
+                model.AddedOn = DateTime.UtcNow;
+
+                tasks.Add(Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey))
+                    .ContinueWith(async response =>
+                    {
+                        gravity = new(gravity.RU + (await response).RequestCharge, string.Empty);
+
+                        if (response.IsCompletedSuccessfully)
+                            ids.Add(model.id);
+                    }));
+            }
+
+            await Task.WhenAll(tasks);
+
+            return (gravity, ids);
         }
-
-        model.id = Guid.NewGuid().ToString();
-        model.AddedOn = DateTime.UtcNow;
-
-        ItemResponse<T> response = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
-        return new(response.RequestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default);
+        catch
+        {
+            throw;
+        }
     }
 
     async Task<(Gravity, T)> IGalaxy<T>.Modify(T model)
     {
         try
         {
-            ItemResponse<T> response = await Container.ReadItemAsync<T>(model.id, new PartitionKey(model.PartitionKey));
             model.ModifiedOn = DateTime.UtcNow;
 
-            response = await Container.ReplaceItemAsync(model, response.Resource.id, new PartitionKey(response.Resource.PartitionKey));
+            ItemResponse<T> response = await Container.ReplaceItemAsync(model, model.id, new PartitionKey(model.PartitionKey));
             return (new(response.RequestCharge, null), response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -145,6 +163,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         {
             throw;
         }
+    }
+
+    async Task<(Gravity g, IList<T> T)> IGalaxy<T>.Modify(IList<T> models)
+    {
+        throw new NotImplementedException();
     }
 
     async Task<Gravity> IGalaxy<T>.Remove(string id, string partitionKey)
