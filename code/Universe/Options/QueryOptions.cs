@@ -47,7 +47,13 @@ public struct Q
         Like,
 
         /// <summary>Not Like</summary>
-        NotLike
+        NotLike,
+        
+        /// <summary>IS_DEFINED</summary>
+        Defined,
+        
+        /// <summary>NOT IS_DEFINED</summary>
+        NotDefined
     }
 }
 
@@ -79,6 +85,8 @@ public static class OperatorExtension
         Q.Operator.NotIn => "NOT IN",
         Q.Operator.Like => "LIKE",
         Q.Operator.NotLike => "NOT LIKE",
+        Q.Operator.Defined => "IS_DEFINED",
+        Q.Operator.NotDefined => "NOT IS_DEFINED",
         _ => throw new UniverseException("Unrecognized OPERATOR keyword")
     };
 }

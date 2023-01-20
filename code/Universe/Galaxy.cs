@@ -26,6 +26,14 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
     private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
+        // Validate Catalysts
+        if (catalysts is not null && catalysts.Any() && catalysts.Any(c => c.RuleViolations().Any()))
+        {
+            List<IEnumerable<string>> violationsPerCatalyst = catalysts.Select(c => c.RuleViolations()).ToList();
+            List<string> violations = violationsPerCatalyst.SelectMany(v => v).ToList().Distinct().ToList();
+            throw new UniverseException(string.Join(Environment.NewLine, violations));
+        }
+
         // Column Options Builder
         string columnsInQuery = "*";
         if (columnOptions is not null)
@@ -82,12 +90,12 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
         // Parameters Builder
         QueryDefinition query = new(queryBuilder.ToString());
-        if (!catalysts.Any()) return query;
-        {
-            query = query.WithParameter($"@{catalysts[0].ParameterName()}", catalysts[0].Value);
-            foreach (Catalyst catalyst in catalysts.Where(p => p.Column != catalysts[0].Column).ToList())
-                query = query.WithParameter($"@{catalyst.ParameterName()}", catalyst.Value);
-        }
+        if (!catalysts.Any())
+            return query;
+
+        query = query.WithParameter($"@{catalysts[0].ParameterName()}", catalysts[0].Value);
+        foreach (Catalyst catalyst in catalysts.Where(p => p.Column != catalysts[0].Column).ToList())
+            query = query.WithParameter($"@{catalyst.ParameterName()}", catalyst.Value);
 
         return query;
 
@@ -95,6 +103,8 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         {
             Q.Operator.In => $"ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.ParameterName()})",
             Q.Operator.NotIn => $"NOT ARRAY_CONTAINS(c.{catalyst.Column}, @{catalyst.ParameterName()})",
+            Q.Operator.Defined => $"IS_DEFINED(c.{catalyst.Column})",
+            Q.Operator.NotDefined => $"NOT IS_DEFINED(c.{catalyst.Column})",
             _ => $"c.{catalyst.Column} {catalyst.Operator.Value()} @{catalyst.ParameterName()}",
         };
     }
