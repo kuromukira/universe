@@ -44,7 +44,7 @@
 	<ItemGroup>
 		<Folder Include="Exception\" />
 		<Folder Include="Options\" />
-		<Folder Include="Responses\" />
+		<Folder Include="Response\" />
 	</ItemGroup>
 
 	<ItemGroup>
