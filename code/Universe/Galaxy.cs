@@ -4,13 +4,13 @@ using Universe.Response;
 namespace Universe;
 
 /// <summary>Inherit repositories to implement Universe</summary>
-public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntity
+public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : class, ICosmicEntity
 {
-    private readonly Container Container;
-    private bool DisposedValue;
+    private readonly Container _container;
+    private bool _disposedValue;
 
-    private readonly bool RecordQuery;
-    private readonly bool AllowBulk;
+    private readonly bool _recordQuery;
+    private readonly bool _allowBulk;
 
     /// <summary></summary>
     protected Galaxy(CosmosClient client, string database, string container, string partitionKey, bool recordQueries = false)
@@ -18,39 +18,31 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         if (string.IsNullOrWhiteSpace(container) || string.IsNullOrWhiteSpace(partitionKey))
             throw new UniverseException("Container name and PartitionKey are required");
 
-        RecordQuery = recordQueries;
+        _recordQuery = recordQueries;
         if (client.ClientOptions is not null)
-            AllowBulk = client.ClientOptions.AllowBulkExecution;
-        Container = client.GetDatabase(database).CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
+            _allowBulk = client.ClientOptions.AllowBulkExecution;
+        _container = client.GetDatabase(database).CreateContainerIfNotExistsAsync(container, partitionKey).GetAwaiter().GetResult();
     }
 
-    private static QueryDefinition CreateQuery(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
+    private static QueryDefinition CreateQuery(IList<Cluster> clusters, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> groups = null)
     {
-        // Validate Catalysts
-        if (catalysts is not null && catalysts.Any() && catalysts.Any(c => c.RuleViolations().Any()))
-        {
-            List<IEnumerable<string>> violationsPerCatalyst = catalysts.Select(c => c.RuleViolations()).ToList();
-            List<string> violations = violationsPerCatalyst.SelectMany(v => v).ToList().Distinct().ToList();
-            throw new UniverseException(string.Join(Environment.NewLine, violations));
-        }
-
         // Column Options Builder
         string columnsInQuery = "*";
         if (columnOptions is not null)
         {
-            if (columnOptions?.Names is not null && columnOptions?.Names.Count > 0)
-                columnsInQuery = string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList());
+            if (columnOptions.Value.Names is not null && columnOptions.Value.Names.Count > 0)
+                columnsInQuery = string.Join(", ", columnOptions.Value.Names.Select(c => $"c.{c}").ToList());
 
-            if ((columnOptions?.Top ?? 0) > 0)
-                columnsInQuery = $"TOP {columnOptions?.Top ?? 1} {columnsInQuery}";
+            if ((columnOptions.Value.Top) > 0)
+                columnsInQuery = $"TOP {columnOptions.Value.Top} {columnsInQuery}";
 
-            if (columnOptions?.IsDistinct ?? false)
+            if (columnOptions.Value.IsDistinct)
                 columnsInQuery = $"DISTINCT {columnsInQuery}";
 
-            if (columnOptions?.Count ?? false)
+            if (columnOptions.Value.Count)
             {
                 groups ??= new List<string>();
-                groups = groups.Concat(columnOptions?.Names ?? new List<string>()).Distinct().ToList();
+                groups = groups.Concat(columnOptions.Value.Names ?? new List<string>()).Distinct().ToList();
                 columnsInQuery = $"{columnsInQuery}, COUNT(1) Count";
             }
         }
@@ -60,16 +52,43 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             throw new UniverseException("ORDER BY is not supported in presence of GROUP BY");
 
         // Update Columns Builder with Group By
-        if (columnsInQuery.Contains("*") && groups is not null && groups.Any())
-            columnsInQuery.Replace("*", string.Join(", ", groups.Select(c => $"c.{c}").ToList()));
+        if (columnsInQuery.Contains('*') && groups is not null && groups.Any())
+            _ = columnsInQuery.Replace("*", string.Join(", ", groups.Select(c => $"c.{c}").ToList()));
 
-        // Where Clause Builder
         StringBuilder queryBuilder = new($"SELECT {columnsInQuery} FROM c");
-        if (catalysts.Any())
+
+        // Validate Clusters
+        if (clusters is not null && clusters.Any(c => c.Catalysts is null || !c.Catalysts.Any()))
+            throw new UniverseException("Catalysts inside of a Cluster must not be null or empty.");
+
+        // Construct Where Clause by Clusters
+        if (clusters is not null)
         {
-            queryBuilder.Append($" WHERE {WhereClauseBuilder(catalysts[0])}");
-            foreach (Catalyst catalyst in catalysts.Where(p => p.Column != catalysts[0].Column).ToList())
-                queryBuilder.Append($" {catalyst.Where.Value()} {WhereClauseBuilder(catalyst)}");
+            foreach (Cluster cluster in clusters)
+            {
+                // Validate Catalysts
+                if (cluster.Catalysts.Any(c => c.RuleViolations().Any()))
+                {
+                    List<IEnumerable<string>> violationsPerCatalyst = cluster.Catalysts.Select(c => c.RuleViolations()).ToList();
+                    List<string> violations = violationsPerCatalyst.SelectMany(v => v).ToList().Distinct().ToList();
+                    throw new UniverseException(string.Join(Environment.NewLine, violations));
+                }
+
+                // Add the where statement if not yet present
+                if (clusters.IndexOf(cluster) == 0)
+                    queryBuilder.Append(" WHERE (");
+                else queryBuilder.Append($" {cluster.Where.Value()} (");
+
+                // Where Clause Builder
+                foreach (Catalyst catalyst in cluster.Catalysts)
+                {
+                    if (cluster.Catalysts.IndexOf(catalyst) == 0)
+                        queryBuilder.Append(WhereClauseBuilder(catalyst));
+                    else queryBuilder.Append($" {catalyst.Where.Value()} {WhereClauseBuilder(catalyst)}");
+                }
+
+                queryBuilder.Append(')');
+            }
         }
 
         // Sorting Builder
@@ -90,12 +109,13 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
         // Parameters Builder
         QueryDefinition query = new(queryBuilder.ToString());
-        if (!catalysts.Any())
-            return query;
 
-        query = query.WithParameter($"@{catalysts[0].ParameterName()}", catalysts[0].Value);
-        foreach (Catalyst catalyst in catalysts.Where(p => p.Column != catalysts[0].Column).ToList())
-            query = query.WithParameter($"@{catalyst.ParameterName()}", catalyst.Value);
+        if (clusters is not null && clusters.Any())
+        {
+            query = clusters.SelectMany(cluster => cluster.Catalysts)
+                .Aggregate(query, (current, catalyst) =>
+                    current.WithParameter($"@{catalyst.ParameterName()}", catalyst.Value));
+        }
 
         return query;
 
@@ -115,37 +135,30 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             model.id = Guid.NewGuid().ToString();
         model.AddedOn = DateTime.UtcNow;
 
-        ItemResponse<T> response = await Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
+        ItemResponse<T> response = await _container.CreateItemAsync(model, new PartitionKey(model.PartitionKey));
         return (new(response.RequestCharge, null), model.id);
     }
 
     async Task<Gravity> IGalaxy<T>.Create(IList<T> models)
     {
-        try
+        if (!_allowBulk)
+            throw new UniverseException("Bulk create of documents is not configured properly.");
+
+        Gravity gravity = new(0, string.Empty);
+        List<Task> tasks = new(models.Count);
+
+        foreach (T model in models)
         {
-            if (!AllowBulk)
-                throw new UniverseException("Bulk create of documents is not configured properly.");
+            if (string.IsNullOrWhiteSpace(model.id))
+                model.id = Guid.NewGuid().ToString();
+            model.AddedOn = DateTime.UtcNow;
 
-            Gravity gravity = new(0, string.Empty);
-            List<Task> tasks = new(models.Count);
-
-            foreach (T model in models)
-            {
-                if (string.IsNullOrWhiteSpace(model.id))
-                    model.id = Guid.NewGuid().ToString();
-                model.AddedOn = DateTime.UtcNow;
-
-                tasks.Add(Container.CreateItemAsync(model, new PartitionKey(model.PartitionKey))
-                    .ContinueWith(response => gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty)));
-            }
-
-            await Task.WhenAll(tasks);
-            return gravity;
+            tasks.Add(_container.CreateItemAsync(model, new PartitionKey(model.PartitionKey))
+                .ContinueWith(response => gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty)));
         }
-        catch
-        {
-            throw;
-        }
+
+        await Task.WhenAll(tasks);
+        return gravity;
     }
 
     async Task<(Gravity, T)> IGalaxy<T>.Modify(T model)
@@ -154,7 +167,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         {
             model.ModifiedOn = DateTime.UtcNow;
 
-            ItemResponse<T> response = await Container.ReplaceItemAsync(model, model.id, new PartitionKey(model.PartitionKey));
+            ItemResponse<T> response = await _container.ReplaceItemAsync(model, model.id, new PartitionKey(model.PartitionKey));
             return (new(response.RequestCharge, null), response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -171,7 +184,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            if (!AllowBulk)
+            if (!_allowBulk)
                 throw new UniverseException("Bulk modify of documents is not configured properly.");
 
             Gravity gravity = new(0, string.Empty);
@@ -181,11 +194,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             {
                 model.ModifiedOn = DateTime.UtcNow;
 
-                tasks.Add(Container.ReplaceItemAsync(model, model.id, new PartitionKey(model.PartitionKey))
+                tasks.Add(_container.ReplaceItemAsync(model, model.id, new PartitionKey(model.PartitionKey))
                     .ContinueWith(response =>
                     {
                         if (!response.IsCompletedSuccessfully)
-                            throw new UniverseException(response.Exception.Flatten().InnerException.Message);
+                            throw new UniverseException(response.Exception?.Flatten().InnerException?.Message ?? "Oops! Something went wrong!");
 
                         gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty);
                     }));
@@ -194,7 +207,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             await Task.WhenAll(tasks);
             return gravity;
         }
-        catch
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new UniverseException($"Something went wrong doing the bulk operation. See error: {ex.Message}");
+        }
+        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
             throw;
         }
@@ -204,7 +221,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            ItemResponse<T> response = await Container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
+            ItemResponse<T> response = await _container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
             return new(response.RequestCharge, null);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -221,7 +238,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         try
         {
-            ItemResponse<T> response = await Container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
+            ItemResponse<T> response = await _container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
             return (new(response.RequestCharge, null), response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -236,37 +253,20 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
     async Task<(Gravity, T)> GetOneFromQuery(QueryDefinition query)
     {
-        using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
+        using FeedIterator<T> queryResponse = _container.GetItemQueryIterator<T>(query);
         if (queryResponse.HasMoreResults)
         {
             FeedResponse<T> next = await queryResponse.ReadNextAsync();
-            return (new(next.RequestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), next.Any() ? next.Resource.FirstOrDefault() : default);
+            return (new(next.RequestCharge, null, _recordQuery ? (query.QueryText, query.GetQueryParameters()) : default), next.Any() ? next.Resource.FirstOrDefault() : default);
         }
         else return new(new(0, null), default);
     }
 
-    async Task<(Gravity, T)> IGalaxy<T>.Get(Catalyst catalyst, IList<string> columns)
+    async Task<(Gravity, T)> IGalaxy<T>.Get(IList<Cluster> clusters, IList<string> columns)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columnOptions: columns is null || !columns.Any() ? null : new(columns));
-            return await GetOneFromQuery(query);
-        }
-        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            throw new UniverseException($"{typeof(T).Name} does not exist.");
-        }
-        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
-        {
-            throw;
-        }
-    }
-
-    async Task<(Gravity, T)> IGalaxy<T>.Get(IList<Catalyst> catalysts, IList<string> columns)
-    {
-        try
-        {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columns is null || !columns.Any() ? null : new(columns));
+            QueryDefinition query = CreateQuery(clusters, columnOptions: columns is null || !columns.Any() ? null : new(columns));
             return await GetOneFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -283,7 +283,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     {
         double requestCharge = 0;
         List<T> collection = new();
-        using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query);
+        using FeedIterator<T> queryResponse = _container.GetItemQueryIterator<T>(query);
         while (queryResponse.HasMoreResults)
         {
             FeedResponse<T> next = await queryResponse.ReadNextAsync();
@@ -291,14 +291,14 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             requestCharge += next.RequestCharge;
         }
 
-        return (new(requestCharge, null, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
+        return (new(requestCharge, null, _recordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(Catalyst catalyst, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Cluster> clusters, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: new[] { catalyst }, columnOptions: columnOptions, sorting: sorting, groups: group);
+            QueryDefinition query = CreateQuery(clusters: clusters, columnOptions: columnOptions, sorting: sorting, groups: group);
             return await GetListFromQuery(query);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
@@ -307,29 +307,16 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         }
     }
 
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.List(IList<Catalyst> catalysts, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
+    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Cluster> clusters, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
     {
         try
         {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columnOptions, sorting: sorting, groups: group);
-            return await GetListFromQuery(query);
-        }
-        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
-        {
-            throw;
-        }
-    }
-
-    async Task<(Gravity, IList<T>)> IGalaxy<T>.Paged(Q.Page page, IList<Catalyst> catalysts, ColumnOptions? columnOptions, IList<Sorting.Option> sorting, IList<string> group)
-    {
-        try
-        {
-            QueryDefinition query = CreateQuery(catalysts: catalysts, columnOptions: columnOptions, sorting: sorting, groups: group);
+            QueryDefinition query = CreateQuery(clusters: clusters, columnOptions: columnOptions, sorting: sorting, groups: group);
 
             double requestUnit = 0;
             string continuationToken = string.Empty;
             List<T> collection = new();
-            using FeedIterator<T> queryResponse = Container.GetItemQueryIterator<T>(query,
+            using FeedIterator<T> queryResponse = _container.GetItemQueryIterator<T>(query,
                 requestOptions: new() { MaxItemCount = page.Size },
                 continuationToken: string.IsNullOrWhiteSpace(page.ContinuationToken) ? null : page.ContinuationToken
             );
@@ -345,7 +332,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                 }
             }
 
-            return (new(requestUnit, continuationToken, RecordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
+            return (new(requestUnit, continuationToken, _recordQuery ? (query.QueryText, query.GetQueryParameters()) : default), collection);
         }
         catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
@@ -356,12 +343,12 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
     /// <summary></summary>
     protected virtual void Dispose(bool disposing)
     {
-        if (DisposedValue) return;
+        if (_disposedValue) return;
         if (disposing)
         {
         }
 
-        DisposedValue = true;
+        _disposedValue = true;
     }
 
     /// <summary></summary>
