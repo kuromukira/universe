@@ -15,16 +15,16 @@
 	<PropertyGroup>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Description>A simpler way of querying a CosmosDb Namespace</Description>
-		<Copyright>Nor Gelera 2022</Copyright>
+		<Copyright>Nor Gelera 2023</Copyright>
 		<RepositoryUrl>https://github.com/kuromukira/universe</RepositoryUrl>
 		<PackageTags>cosmos simple query</PackageTags>
 		<RepositoryType>Git</RepositoryType>
 		<Authors>Nor Gelera</Authors>
 		<Product>Universe</Product>
-		<Version>1.4.1</Version>
+		<Version>1.5.0</Version>
 		<PackageReleaseNotes>View release on https://github.com/kuromukira/universe/releases</PackageReleaseNotes>
-		<AssemblyVersion>1.4.1.0</AssemblyVersion>
-		<FileVersion>1.4.1.0</FileVersion>
+		<AssemblyVersion>1.5.0.0</AssemblyVersion>
+		<FileVersion>1.5.0.0</FileVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
