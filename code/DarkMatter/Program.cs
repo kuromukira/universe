@@ -40,8 +40,8 @@ IGalaxy<MyObject> galaxy = new MyRepo(
         }, Where: Q.Where.And),
         new(Catalysts: new List<Catalyst>
         {
-            new(nameof(MyObject.Name), "<VALUE TO QUERY>", Operator: Q.Operator.Defined),
-            new(nameof(MyObject.Description), "<VALUE TO QUERY>", Operator: Q.Operator.Defined)
+            new(nameof(MyObject.Name), Operator: Q.Operator.Defined),
+            new(nameof(MyObject.Description), Operator: Q.Operator.Defined)
         }, Where: Q.Where.And)
     },
     columnOptions: new(
