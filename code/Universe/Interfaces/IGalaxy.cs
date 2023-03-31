@@ -38,25 +38,15 @@ public interface IGalaxy<T> where T : ICosmicEntity
     /// <summary>
     /// Get one model from the database
     /// </summary>
-    Task<(Gravity g, T T)> Get(Catalyst catalyst, IList<string> columns = null);
+    Task<(Gravity g, T T)> Get(IList<Cluster> clusters, IList<string> columns = null);
 
     /// <summary>
-    /// Get one model from the database
+    /// Get list from the database
     /// </summary>
-    Task<(Gravity g, T T)> Get(IList<Catalyst> catalysts, IList<string> columns = null);
-
-    /// <summary>
-    /// Get a paginated list from the database
-    /// </summary>
-    Task<(Gravity g, IList<T> T)> List(Catalyst catalyst, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
+    Task<(Gravity g, IList<T> T)> List(IList<Cluster> clusters, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
 
     /// <summary>
     /// Get a paginated list from the database
     /// </summary>
-    Task<(Gravity g, IList<T> T)> List(IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
-
-    /// <summary>
-    /// Get a paginated list from the database
-    /// </summary>
-    Task<(Gravity g, IList<T> T)> Paged(Q.Page page, IList<Catalyst> catalysts, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
+    Task<(Gravity g, IList<T> T)> Paged(Q.Page page, IList<Cluster> clusters, ColumnOptions? columnOptions = null, IList<Sorting.Option> sorting = null, IList<string> group = null);
 }

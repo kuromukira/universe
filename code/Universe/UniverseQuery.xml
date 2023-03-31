@@ -82,27 +82,17 @@
             Get one model from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.Get(Universe.Options.Query.Catalyst,System.Collections.Generic.IList{System.String})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.Get(System.Collections.Generic.IList{Universe.Options.Query.Cluster},System.Collections.Generic.IList{System.String})">
             <summary>
             Get one model from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.Get(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Collections.Generic.IList{System.String})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.List(System.Collections.Generic.IList{Universe.Options.Query.Cluster},System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
-            Get one model from the database
+            Get list from the database
             </summary>
         </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.List(Universe.Options.Query.Catalyst,System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
-            <summary>
-            Get a paginated list from the database
-            </summary>
-        </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.List(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
-            <summary>
-            Get a paginated list from the database
-            </summary>
-        </member>
-        <member name="M:Universe.Interfaces.IGalaxy`1.Paged(Universe.Options.Query.Q.Page,System.Collections.Generic.IList{Universe.Options.Query.Catalyst},System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
+        <member name="M:Universe.Interfaces.IGalaxy`1.Paged(Universe.Options.Query.Q.Page,System.Collections.Generic.IList{Universe.Options.Query.Cluster},System.Nullable{Universe.Options.Query.ColumnOptions},System.Collections.Generic.IList{Universe.Options.Query.Sorting.Option},System.Collections.Generic.IList{System.String})">
             <summary>
             Get a paginated list from the database
             </summary>
@@ -273,6 +263,26 @@
         </member>
         <member name="M:Universe.Options.Query.SortOptionDirectionExtension.Value(Universe.Options.Query.Sorting.Direction)">
             <summary></summary>
+        </member>
+        <member name="T:Universe.Options.Query.Cluster">
+            <summary>
+            Clusters are group of Catalysts that are joined by a Where operator (eg AND / OR). This will divide the where clause into multiple groups.
+            </summary>
+            <param name="Catalysts">Catalysts under one group / cluster</param>
+            <param name="Where">Where operator (eg AND / OR)</param>
+        </member>
+        <member name="M:Universe.Options.Query.Cluster.#ctor(System.Collections.Generic.IList{Universe.Options.Query.Catalyst},Universe.Options.Query.Q.Where)">
+            <summary>
+            Clusters are group of Catalysts that are joined by a Where operator (eg AND / OR). This will divide the where clause into multiple groups.
+            </summary>
+            <param name="Catalysts">Catalysts under one group / cluster</param>
+            <param name="Where">Where operator (eg AND / OR)</param>
+        </member>
+        <member name="P:Universe.Options.Query.Cluster.Catalysts">
+            <summary>Catalysts under one group / cluster</summary>
+        </member>
+        <member name="P:Universe.Options.Query.Cluster.Where">
+            <summary>Where operator (eg AND / OR)</summary>
         </member>
         <member name="T:Universe.Options.UniverseSerializer">
             <summary></summary>
