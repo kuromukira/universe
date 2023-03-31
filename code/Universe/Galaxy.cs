@@ -4,7 +4,7 @@ using Universe.Response;
 namespace Universe;
 
 /// <summary>Inherit repositories to implement Universe</summary>
-public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntity
+public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : class, ICosmicEntity
 {
     private readonly Container _container;
     private bool _disposedValue;
@@ -38,19 +38,19 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
         string columnsInQuery = "*";
         if (columnOptions is not null)
         {
-            if (columnOptions?.Names is not null && columnOptions?.Names.Count > 0)
-                columnsInQuery = string.Join(", ", columnOptions?.Names.Select(c => $"c.{c}").ToList());
+            if (columnOptions.Value.Names is not null && columnOptions.Value.Names.Count > 0)
+                columnsInQuery = string.Join(", ", columnOptions.Value.Names.Select(c => $"c.{c}").ToList());
 
-            if ((columnOptions?.Top ?? 0) > 0)
-                columnsInQuery = $"TOP {columnOptions?.Top ?? 1} {columnsInQuery}";
+            if ((columnOptions.Value.Top) > 0)
+                columnsInQuery = $"TOP {columnOptions.Value.Top} {columnsInQuery}";
 
-            if (columnOptions?.IsDistinct ?? false)
+            if (columnOptions.Value.IsDistinct)
                 columnsInQuery = $"DISTINCT {columnsInQuery}";
 
-            if (columnOptions?.Count ?? false)
+            if (columnOptions.Value.Count)
             {
                 groups ??= new List<string>();
-                groups = groups.Concat(columnOptions?.Names ?? new List<string>()).Distinct().ToList();
+                groups = groups.Concat(columnOptions.Value.Names ?? new List<string>()).Distinct().ToList();
                 columnsInQuery = $"{columnsInQuery}, COUNT(1) Count";
             }
         }
@@ -121,31 +121,24 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
 
     async Task<Gravity> IGalaxy<T>.Create(IList<T> models)
     {
-        try
+        if (!_allowBulk)
+            throw new UniverseException("Bulk create of documents is not configured properly.");
+
+        Gravity gravity = new(0, string.Empty);
+        List<Task> tasks = new(models.Count);
+
+        foreach (T model in models)
         {
-            if (!_allowBulk)
-                throw new UniverseException("Bulk create of documents is not configured properly.");
+            if (string.IsNullOrWhiteSpace(model.id))
+                model.id = Guid.NewGuid().ToString();
+            model.AddedOn = DateTime.UtcNow;
 
-            Gravity gravity = new(0, string.Empty);
-            List<Task> tasks = new(models.Count);
-
-            foreach (T model in models)
-            {
-                if (string.IsNullOrWhiteSpace(model.id))
-                    model.id = Guid.NewGuid().ToString();
-                model.AddedOn = DateTime.UtcNow;
-
-                tasks.Add(_container.CreateItemAsync(model, new PartitionKey(model.PartitionKey))
-                    .ContinueWith(response => gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty)));
-            }
-
-            await Task.WhenAll(tasks);
-            return gravity;
+            tasks.Add(_container.CreateItemAsync(model, new PartitionKey(model.PartitionKey))
+                .ContinueWith(response => gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty)));
         }
-        catch
-        {
-            throw;
-        }
+
+        await Task.WhenAll(tasks);
+        return gravity;
     }
 
     async Task<(Gravity, T)> IGalaxy<T>.Modify(T model)
@@ -185,7 +178,7 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
                     .ContinueWith(response =>
                     {
                         if (!response.IsCompletedSuccessfully)
-                            throw new UniverseException(response.Exception.Flatten().InnerException.Message);
+                            throw new UniverseException(response.Exception?.Flatten().InnerException?.Message ?? "Oops! Something went wrong!");
 
                         gravity = new(gravity.RU + response.Result.RequestCharge, string.Empty);
                     }));
@@ -194,7 +187,11 @@ public abstract class Galaxy<T> : IDisposable, IGalaxy<T> where T : ICosmicEntit
             await Task.WhenAll(tasks);
             return gravity;
         }
-        catch
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new UniverseException($"Something went wrong doing the bulk operation. See error: {ex.Message}");
+        }
+        catch (CosmosException ex) when (ex.StatusCode != HttpStatusCode.NotFound)
         {
             throw;
         }
