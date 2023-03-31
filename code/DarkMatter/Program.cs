@@ -31,10 +31,18 @@ IGalaxy<MyObject> galaxy = new MyRepo(
 // actual use of UniverseQuery
 (Gravity g, IList<MyObject> T) = await galaxy.Paged(
     page: new Q.Page(50),
-    catalysts: new List<Catalyst>
+    clusters: new List<Cluster>()
     {
-        new(nameof(MyObject.Links), "<VALUE TO QUERY>", Operator: Q.Operator.In),
-        new(nameof(MyObject.Code), "<VALUE TO QUERY>", Where: Q.Where.Or)
+        new(Catalysts: new List<Catalyst>
+        {
+            new(nameof(MyObject.Links), "<VALUE TO QUERY>", Operator: Q.Operator.In),
+            new(nameof(MyObject.Code), "<VALUE TO QUERY>", Where: Q.Where.Or)
+        }, Where: Q.Where.And),
+        new(Catalysts: new List<Catalyst>
+        {
+            new(nameof(MyObject.Name), Operator: Q.Operator.Defined),
+            new(nameof(MyObject.Description), Operator: Q.Operator.Defined)
+        }, Where: Q.Where.And)
     },
     columnOptions: new(
         Names: new List<string>
@@ -67,8 +75,7 @@ class MyObject : ICosmicEntity
     public DateTime AddedOn { get; set; }
     public DateTime? ModifiedOn { get; set; }
 
-    [JsonIgnore]
-    public string PartitionKey => Code;
+    [JsonIgnore] public string PartitionKey => Code;
 
     public string Code { get; set; }
 
