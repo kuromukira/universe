@@ -50,6 +50,41 @@ public sealed class DocumentCacheRepositoryTests
     }
 
     [Fact]
+    public async Task PointGet_CacheEnabled_PreservesETag()
+    {
+        FakeContainer container = new()
+        {
+            ReadItemResult = new CacheEntity { id = "id-1", TenantId = "tenant-1", Name = "from-cosmos" }
+        };
+        TestGalaxy repo = new(container, new UniverseOptions().WithAutoProvisioning(false).WithDocumentCache());
+
+        (Gravity firstGravity, _) = await repo.PointGet("id-1", "tenant-1");
+        (Gravity cachedGravity, _) = await repo.PointGet("id-1", "tenant-1");
+
+        Assert.Equal("fake-etag", firstGravity.ETag);
+        Assert.Equal("fake-etag", cachedGravity.ETag);
+    }
+
+    [Fact]
+    public async Task AtomicCreate_ExecutesOneBatchAndUpdatesPointCacheAfterCommit()
+    {
+        FakeContainer container = new();
+        TestGalaxy repo = new(container, new UniverseOptions().WithAutoProvisioning(false).WithDocumentCache());
+        CacheEntity entity = new() { TenantId = "tenant-1", Name = "atomic" };
+
+        AtomicBatchResult<CacheEntity> result = await repo.Atomic("tenant-1").Create(entity).ExecuteAsync(TestContext.Current.CancellationToken);
+        (Gravity cachedGravity, CacheEntity cached) = await repo.PointGet(entity.id, "tenant-1");
+
+        Assert.True(result.Succeeded);
+        Assert.Single(result.Operations);
+        Assert.Equal(3.5, result.Gravity.RU);
+        Assert.Equal(1, container.TransactionalBatchCalls);
+        Assert.Equal(0, cachedGravity.RU);
+        Assert.Equal("atomic", cached.Name);
+        Assert.Equal(0, container.ReadItemCalls);
+    }
+
+    [Fact]
     public async Task QueryGet_CacheEnabled_UsesStableKeyAcrossGeneratedCatalystIds()
     {
         FakeContainer container = new()
@@ -165,6 +200,9 @@ public sealed class DocumentCacheRepositoryTests
         public Task<Gravity> RemoveEntity(string id, string tenantId)
             => ((IGalaxyBasic<CacheEntity>)this).Remove(id, tenantId);
 
+        public AtomicBatch<CacheEntity> Atomic(string tenantId)
+            => ((IGalaxyBasic<CacheEntity>)this).Atomic(tenantId);
+
         private static CosmosClient CreateClient()
             => new(
                 "https://localhost:8081",
@@ -187,6 +225,7 @@ public sealed class DocumentCacheRepositoryTests
         public IReadOnlyList<CacheEntity> QueryItems { get; set; } = [];
         public int ReadItemCalls { get; private set; }
         public int QueryCalls { get; private set; }
+        public int TransactionalBatchCalls { get; private set; }
 
         public override string Id => "container";
         public override Database Database => throw new NotSupportedException();
@@ -215,7 +254,10 @@ public sealed class DocumentCacheRepositoryTests
             => Task.FromResult<ItemResponse<T>>(new FakeItemResponse<T>(item, 5.5));
 
         public override TransactionalBatch CreateTransactionalBatch(PartitionKey partitionKey)
-            => new FakeTransactionalBatch();
+        {
+            TransactionalBatchCalls++;
+            return new FakeTransactionalBatch();
+        }
 
         public override Task<ContainerResponse> ReadContainerAsync(ContainerRequestOptions requestOptions = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public override Task<ResponseMessage> ReadContainerStreamAsync(ContainerRequestOptions requestOptions = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -259,6 +301,7 @@ public sealed class DocumentCacheRepositoryTests
     {
         public override T Resource => resource;
         public override double RequestCharge => requestCharge;
+        public override string ETag => "fake-etag";
         public override HttpStatusCode StatusCode => HttpStatusCode.OK;
     }
 

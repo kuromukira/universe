@@ -75,8 +75,12 @@ internal sealed class DocumentCache(DocumentCacheOptions options)
     }
 
     internal bool TryGet<T>(DocumentCacheKey key, out T value)
+        => TryGet(key, out value, out _);
+
+    internal bool TryGet<T>(DocumentCacheKey key, out T value, out string eTag)
     {
         value = default;
+        eTag = null;
 
         if (!_entries.TryGetValue(key, out DocumentCacheEntry entry))
             return false;
@@ -90,6 +94,7 @@ internal sealed class DocumentCache(DocumentCacheOptions options)
         try
         {
             value = CloneIfNeeded<T>(entry.Value);
+            eTag = entry.ETag;
             return true;
         }
         catch (SystemException)
@@ -100,7 +105,7 @@ internal sealed class DocumentCache(DocumentCacheOptions options)
         }
     }
 
-    internal void Set(DocumentCacheKey key, DocumentCacheOperation operation, string scopeHash, object value)
+    internal void Set(DocumentCacheKey key, DocumentCacheOperation operation, string scopeHash, object value, string eTag = null)
     {
         object valueToStore;
         try
@@ -112,7 +117,7 @@ internal sealed class DocumentCache(DocumentCacheOptions options)
             return;
         }
 
-        _entries[key] = new(valueToStore, DateTimeOffset.UtcNow, operation, scopeHash);
+        _entries[key] = new(valueToStore, DateTimeOffset.UtcNow, operation, scopeHash, eTag);
         _insertionOrder.Enqueue(key);
         EnforceMaxEntries();
     }
@@ -163,5 +168,6 @@ internal sealed class DocumentCache(DocumentCacheOptions options)
         object Value,
         DateTimeOffset CreatedOn,
         DocumentCacheOperation Operation,
-        string ScopeHash);
+        string ScopeHash,
+        string ETag);
 }
