@@ -6,6 +6,17 @@ namespace Universe.Interfaces;
 public interface IGalaxyBasic<T> where T : ICosmicEntity
 {
     /// <summary>
+    /// Starts an atomic transactional batch for one logical partition.
+    /// </summary>
+    /// <param name="partitionKeys">Exact order of the repository partition-key values.</param>
+    AtomicBatch<T> Atomic(params string[] partitionKeys);
+
+    /// <summary>
+    /// Starts a cross-partition bulk batch. Operations in one partition are transactional; operations across partitions are not.
+    /// </summary>
+    BulkBatch<T> Bulk();
+
+    /// <summary>
     /// Create a new model in the database
     /// </summary>
     Task<(Gravity g, string t)> Create(T model);

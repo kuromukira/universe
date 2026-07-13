@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using Universe.Builder;
@@ -58,9 +59,9 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
                 {
                     EnableContentResponseOnWrite = false
                 });
-            SetPointCache(model);
+            SetPointCache(model, response.ETag);
             ClearQueryCache();
-            return (new(response.RequestCharge, null), model.id);
+            return (new(response.RequestCharge, null) { ETag = response.ETag }, model.id);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
         {
@@ -86,39 +87,26 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
             if (models.Count > 100)
                 throw new UniverseException("Bulk create can only handle up to 100 items at a time.");
 
-            List<Task<double>> tasks = new(models.Count);
+            List<BatchOperation<T>> operations = models
+                .Select((model, index) => BatchOperation<T>.Create(index, model, [.. model.PartitionKeys()]))
+                .ToList();
+            foreach (BatchOperation<T> operation in operations)
+                operation.PrepareForExecution();
 
-            IEnumerable<IGrouping<PartitionKey, T>> partitionGroups = models.GroupBy(m => m.BuildPartitionKey());
-            foreach (IGrouping<PartitionKey, T> group in partitionGroups)
+            BatchChunkResult<T>[] batches = await Task.WhenAll(operations
+                .GroupBy(operation => PartitionKeyGroup(operation.PartitionKeys))
+                .Select(group => TransactionalBatchExecutor<T>.ExecuteAsync(_container, group.ToArray(), CancellationToken.None)));
+
+            BatchChunkResult<T> failed = batches.FirstOrDefault(batch => !batch.Succeeded);
+            if (failed is not null)
             {
-                TransactionalBatch batch = _container.CreateTransactionalBatch(group.Key);
+                if (failed.StatusCode == HttpStatusCode.Conflict)
+                    throw new UniverseException($"{typeof(T).Name} already exists.");
 
-                foreach (T model in group)
-                {
-                    if (string.IsNullOrWhiteSpace(model.id))
-                        model.id = Guid.CreateVersion7().ToString();
-                    model.AddedOn = DateTime.UtcNow;
-
-                    batch.CreateItem(model, requestOptions: new()
-                    {
-                        EnableContentResponseOnWrite = false
-                    });
-                }
-
-                tasks.Add(batch.ExecuteAsync().ContinueWith(t =>
-                {
-                    if (!t.IsCompletedSuccessfully)
-                        throw new UniverseException("Bulk create batch operation failed.", t.Exception?.Flatten().InnerException);
-
-                    if (t.Result.IsSuccessStatusCode)
-                        return t.Result.RequestCharge;
-                    else
-                        throw new UniverseException($"Transaction batch failed with status code {t.Result.StatusCode}.");
-                }));
+                throw new UniverseException($"Transaction batch failed with status code {failed.StatusCode}.");
             }
 
-            await Task.WhenAll(tasks);
-            double totalRu = tasks.Sum(t => t.Result);
+            double totalRu = batches.Sum(batch => batch.RU);
 
             foreach (T model in models)
                 SetPointCache(model);
@@ -143,9 +131,9 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
             model.ModifiedOn = DateTime.UtcNow;
 
             ItemResponse<T> response = await _container.ReplaceItemAsync(model, model.id, model.BuildPartitionKey());
-            SetPointCache(response.Resource ?? model);
+            SetPointCache(response.Resource ?? model, response.ETag);
             ClearQueryCache();
-            return (new(response.RequestCharge, null), response.Resource);
+            return (new(response.RequestCharge, null) { ETag = response.ETag }, response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -171,37 +159,21 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
             if (models.Count > 100)
                 throw new UniverseException("Bulk modify can only handle up to 100 items at a time.");
 
-            List<Task<double>> tasks = new(models.Count);
+            List<BatchOperation<T>> operations = models
+                .Select((model, index) => BatchOperation<T>.Replace(index, model, [.. model.PartitionKeys()], null))
+                .ToList();
+            foreach (BatchOperation<T> operation in operations)
+                operation.PrepareForExecution();
 
-            IEnumerable<IGrouping<PartitionKey, T>> partitionGroups = models.GroupBy(m => m.BuildPartitionKey());
-            foreach (IGrouping<PartitionKey, T> group in partitionGroups)
-            {
-                TransactionalBatch batch = _container.CreateTransactionalBatch(group.Key);
+            BatchChunkResult<T>[] batches = await Task.WhenAll(operations
+                .GroupBy(operation => PartitionKeyGroup(operation.PartitionKeys))
+                .Select(group => TransactionalBatchExecutor<T>.ExecuteAsync(_container, group.ToArray(), CancellationToken.None)));
 
-                foreach (T model in group)
-                {
-                    model.ModifiedOn = DateTime.UtcNow;
+            BatchChunkResult<T> failed = batches.FirstOrDefault(batch => !batch.Succeeded);
+            if (failed is not null)
+                throw new UniverseException($"Transaction batch failed with status code {failed.StatusCode}.");
 
-                    batch.ReplaceItem(model.id, model, requestOptions: new()
-                    {
-                        EnableContentResponseOnWrite = false
-                    });
-                }
-
-                tasks.Add(batch.ExecuteAsync().ContinueWith(t =>
-                {
-                    if (!t.IsCompletedSuccessfully)
-                        throw new UniverseException("Bulk modify batch operation failed.", t.Exception?.Flatten().InnerException);
-
-                    if (t.Result.IsSuccessStatusCode)
-                        return t.Result.RequestCharge;
-                    else
-                        throw new UniverseException($"Transaction batch failed with status code {t.Result.StatusCode}.");
-                }));
-            }
-
-            await Task.WhenAll(tasks);
-            double totalRu = tasks.Sum(t => t.Result);
+            double totalRu = batches.Sum(batch => batch.RU);
 
             foreach (T model in models)
                 SetPointCache(model);
@@ -219,9 +191,9 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
         }
     }
 
-    private static PartitionKey BuildPartitionKey(string[] partitionKey)
+    internal static PartitionKey BuildPartitionKey(IReadOnlyList<string> partitionKey)
     {
-        if (partitionKey is null || partitionKey.Length == 0)
+        if (partitionKey is null || partitionKey.Count == 0)
             throw new UniverseException("Partition key cannot be null or empty.");
 
         PartitionKeyBuilder partitionKeyBuilder = new();
@@ -284,12 +256,12 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
     {
         try
         {
-            if (TryGetPointCache(id, partitionKey, out T cached))
-                return (new(0, null), cached);
+            if (TryGetPointCache(id, partitionKey, out T cached, out string cachedETag))
+                return (new(0, null) { ETag = cachedETag }, cached);
 
             ItemResponse<T> response = await _container.ReadItemAsync<T>(id, BuildPartitionKey(partitionKey));
-            SetPointCache(id, partitionKey, response.Resource);
-            return (new(response.RequestCharge, null), response.Resource);
+            SetPointCache(id, partitionKey, response.Resource, response.ETag);
+            return (new(response.RequestCharge, null) { ETag = response.ETag }, response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -305,12 +277,12 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
     {
         try
         {
-            if (TryGetPointCache(id, [partitionKey], out T cached))
-                return (new(0, null), cached);
+            if (TryGetPointCache(id, [partitionKey], out T cached, out string cachedETag))
+                return (new(0, null) { ETag = cachedETag }, cached);
 
             ItemResponse<T> response = await _container.ReadItemAsync<T>(id, new(partitionKey));
-            SetPointCache(id, [partitionKey], response.Resource);
-            return (new(response.RequestCharge, null), response.Resource);
+            SetPointCache(id, [partitionKey], response.Resource, response.ETag);
+            return (new(response.RequestCharge, null) { ETag = response.ETag }, response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -322,34 +294,197 @@ public class GalaxyBasic<T> : GalaxyCore, IGalaxyBasic<T> where T : class, ICosm
         }
     }
 
-    private bool TryGetPointCache(string id, IReadOnlyList<string> partitionKeys, out T value)
+    /// <inheritdoc/>
+    AtomicBatch<T> IGalaxyBasic<T>.Atomic(params string[] partitionKeys)
+    {
+        _ = BuildPartitionKey(partitionKeys);
+        return new(_namingPolicy, ExecuteAtomicAsync, [.. partitionKeys]);
+    }
+
+    /// <inheritdoc/>
+    BulkBatch<T> IGalaxyBasic<T>.Bulk() => new(_namingPolicy, ExecuteBulkAsync);
+
+    internal async Task<AtomicBatchResult<T>> ExecuteAtomicAsync(IReadOnlyList<BatchOperation<T>> operations, CancellationToken cancellationToken)
+    {
+        ValidateAtomicOperations(operations);
+        foreach (BatchOperation<T> operation in operations)
+            operation.PrepareForExecution();
+        ValidatePayload(operations);
+
+        BatchChunkResult<T> result = await TransactionalBatchExecutor<T>.ExecuteAsync(_container, operations, cancellationToken);
+        if (result.Succeeded)
+            ApplySuccessfulCommit(operations, result.Operations, clearQueryCache: true);
+
+        return new(new(result.RU, null), result.Succeeded, result.StatusCode, result.Operations);
+    }
+
+    internal async Task<BulkExecutionResult<T>> ExecuteBulkAsync(
+        IReadOnlyList<BatchOperation<T>> operations,
+        BulkExecutionOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (operations is null || operations.Count == 0)
+            throw new UniverseException("A batch must contain at least one operation.");
+        if (options.MaxConcurrency < 1)
+            throw new UniverseException("Bulk batch concurrency must be at least one.");
+
+        foreach (BatchOperation<T> operation in operations)
+        {
+            operation.PrepareForExecution();
+            if (operation.EstimatePayloadSize() > 2 * 1024 * 1024)
+                throw new UniverseException("A batch operation payload exceeds the maximum allowed size of 2MB.");
+        }
+
+        ConcurrentBag<BatchChunkResult<T>> completed = [];
+        int anySuccessfulCommit = 0;
+        using SemaphoreSlim concurrency = new(options.MaxConcurrency, options.MaxConcurrency);
+        try
+        {
+            await Task.WhenAll(operations
+                .GroupBy(operation => PartitionKeyGroup(operation.PartitionKeys))
+                .Select(async group =>
+                {
+                    await concurrency.WaitAsync(cancellationToken);
+                    try
+                    {
+                        foreach (IReadOnlyList<BatchOperation<T>> chunk in Chunk(group.OrderBy(operation => operation.Index)))
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            BatchChunkResult<T> result = await TransactionalBatchExecutor<T>.ExecuteAsync(_container, chunk, cancellationToken);
+                            completed.Add(result);
+                            if (result.Succeeded)
+                            {
+                                ApplySuccessfulCommit(chunk, result.Operations, clearQueryCache: false);
+                                Interlocked.Exchange(ref anySuccessfulCommit, 1);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        concurrency.Release();
+                    }
+                }));
+        }
+        finally
+        {
+            if (Volatile.Read(ref anySuccessfulCommit) == 1)
+                ClearQueryCache();
+        }
+
+        IReadOnlyList<BatchOperationResult<T>> orderedResults = completed
+            .SelectMany(result => result.Operations)
+            .OrderBy(result => result.Index)
+            .ToArray();
+        bool succeeded = completed.All(result => result.Succeeded) && orderedResults.Count == operations.Count;
+        int succeededCount = orderedResults.Count(result => result.Succeeded);
+        int failedCount = orderedResults.Count - succeededCount;
+        double totalRu = completed.Sum(result => result.RU);
+        HttpStatusCode statusCode = succeeded
+            ? HttpStatusCode.OK
+            : orderedResults.FirstOrDefault(result => !result.Succeeded)?.StatusCode ?? HttpStatusCode.InternalServerError;
+        return new(new(totalRu, null), succeeded, statusCode, succeededCount > 0 && failedCount > 0, succeededCount, failedCount, orderedResults);
+    }
+
+    private static void ValidateAtomicOperations(IReadOnlyList<BatchOperation<T>> operations)
+    {
+        if (operations is null || operations.Count == 0)
+            throw new UniverseException("A batch must contain at least one operation.");
+        if (operations.Count > 100)
+            throw new UniverseException("Atomic batches can only contain up to 100 operations.");
+
+        string[] partitionKeys = operations[0].PartitionKeys;
+        if (operations.Any(operation => !operation.PartitionKeys.SequenceEqual(partitionKeys, StringComparer.Ordinal)))
+            throw new UniverseException("All atomic batch operations must use the same logical partition.");
+    }
+
+    private static void ValidatePayload(IReadOnlyList<BatchOperation<T>> operations)
+    {
+        int total = 0;
+        foreach (BatchOperation<T> operation in operations)
+        {
+            int operationSize = operation.EstimatePayloadSize();
+            if (operationSize > 2 * 1024 * 1024)
+                throw new UniverseException("A batch operation payload exceeds the maximum allowed size of 2MB.");
+
+            total = checked(total + operationSize);
+        }
+
+        if (total > 2 * 1024 * 1024)
+            throw new UniverseException("Payload size exceeds the maximum allowed size of 2MB.");
+    }
+
+    private static IEnumerable<IReadOnlyList<BatchOperation<T>>> Chunk(IEnumerable<BatchOperation<T>> operations)
+    {
+        List<BatchOperation<T>> current = [];
+        int currentSize = 0;
+        foreach (BatchOperation<T> operation in operations)
+        {
+            int operationSize = operation.EstimatePayloadSize();
+            if (current.Count == 100 || currentSize + operationSize > 2 * 1024 * 1024)
+            {
+                yield return current;
+                current = [];
+                currentSize = 0;
+            }
+
+            current.Add(operation);
+            currentSize += operationSize;
+        }
+
+        if (current.Count > 0)
+            yield return current;
+    }
+
+    private void ApplySuccessfulCommit(
+        IReadOnlyList<BatchOperation<T>> operations,
+        IReadOnlyList<BatchOperationResult<T>> results,
+        bool clearQueryCache)
+    {
+        Dictionary<int, BatchOperationResult<T>> resultsByIndex = results.ToDictionary(result => result.Index);
+        foreach (BatchOperation<T> operation in operations)
+        {
+            BatchOperationResult<T> result = resultsByIndex[operation.Index];
+            if (operation.Kind is BatchOperationKind.Create or BatchOperationKind.Replace)
+                SetPointCache(operation.Model, result.ETag);
+            else
+                RemovePointCache(operation.Id, operation.PartitionKeys);
+        }
+
+        if (clearQueryCache)
+            ClearQueryCache();
+    }
+
+    private static string PartitionKeyGroup(IReadOnlyList<string> partitionKeys) => JsonSerializer.Serialize(partitionKeys);
+
+    private bool TryGetPointCache(string id, IReadOnlyList<string> partitionKeys, out T value, out string eTag)
     {
         value = default;
+        eTag = null;
         DocumentCache cache = DocumentCache;
         if (cache is null)
             return false;
 
         DocumentCacheKey key = cache.CreatePointKey(_databaseName, _containerName, typeof(T), typeof(T), id, partitionKeys);
-        return cache.TryGet(key, out value);
+        return cache.TryGet(key, out value, out eTag);
     }
 
-    private void SetPointCache(T model)
+    private void SetPointCache(T model, string eTag = null)
     {
         DocumentCache cache = DocumentCache;
         if (cache is null || model is null)
             return;
 
-        SetPointCache(model.id, [.. model.PartitionKeys()], model);
+        SetPointCache(model.id, [.. model.PartitionKeys()], model, eTag);
     }
 
-    private void SetPointCache(string id, IReadOnlyList<string> partitionKeys, T model)
+    private void SetPointCache(string id, IReadOnlyList<string> partitionKeys, T model, string eTag = null)
     {
         DocumentCache cache = DocumentCache;
         if (cache is null || model is null)
             return;
 
         DocumentCacheKey key = cache.CreatePointKey(_databaseName, _containerName, typeof(T), typeof(T), id, partitionKeys);
-        cache.Set(key, DocumentCacheOperation.PointRead, DocumentCacheScopeHash(typeof(T)), model);
+        cache.Set(key, DocumentCacheOperation.PointRead, DocumentCacheScopeHash(typeof(T)), model, eTag);
     }
 
     private void RemovePointCache(string id, IReadOnlyList<string> partitionKeys)

@@ -119,20 +119,28 @@ Preferred future direction:
 
 ### 3.1 Enhanced Bulk Operation Support
 
-Status: not implemented.
+Status: complete in `3.5.0-preview.1`.
 
-Remaining scope:
+Implemented:
 
-- Optimistic concurrency with ETags.
-- Rollback or compensation support for multi-document workflows.
+- `Bulk()` groups operations by logical partition, automatically chunks them to Cosmos transactional-batch limits, and runs up to four partition pipelines concurrently by default.
+- Per-partition chunks preserve operation order and use `TransactionalBatch`; cross-partition work deliberately reports structured partial success instead of compensating writes.
+- Create, replace, patch, and delete operations return ordered per-operation status, ETags, and request-charge allocation.
+- Replace, patch, and delete support optimistic concurrency through ETags.
 
 ### 3.2 Atomic Operations
 
-Status: not implemented.
+Status: complete in `3.5.0-preview.1`.
 
-Remaining scope:
+Implemented:
 
-- Conditional update operations, such as update only if a predicate or ETag condition is satisfied.
+- `Atomic(partitionKeys)` executes mixed create, replace, patch, and delete operations as one same-partition ACID transaction.
+- Typed patch builders support set, add, replace, remove, and increment operations with Cosmos's per-item patch limit enforced before execution.
+- Typed conditions support scalar comparisons with explicit `And()` / `Or()` chaining, serializer-aware property names, and no raw predicate-string API.
+
+Deferred until Cosmos distributed transactions reach general availability:
+
+- Cross-partition distributed transactions and any speculative abstraction over the preview-only Cosmos feature. Cross-partition `Bulk()` intentionally remains non-atomic and performs no automatic compensation.
 
 ### 4.1 Change Feed Processing
 

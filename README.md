@@ -193,6 +193,42 @@ foreach (MyModel item in models)
 Gravity gravity = await galaxy.Modify(models);
 ```
 
+### Atomic and Enhanced Bulk Operations
+
+`Atomic(...)` executes mixed create, replace, patch, and delete operations as one ACID transaction in a single logical partition. `Bulk()` applies the same operations across partitions; each partition chunk is transactional, but the overall execution can partially succeed. Neither new API requires `AllowBulkExecution`.
+
+```csharp
+// Point reads now include an ETag. Replacements, patches, and deletes can require it.
+(Gravity read, MyModel model) = await galaxy.Get("document-id", "partition-key-value");
+
+AtomicBatchResult<MyModel> atomic = await galaxy
+    .Atomic("partition-key-value")
+    .Replace(model, read.ETag)
+    .ExecuteAsync();
+
+BatchOperationResult<MyModel> replaceOperation = atomic.Operations.Single();
+if (!atomic.Succeeded || !replaceOperation.Succeeded || string.IsNullOrWhiteSpace(replaceOperation.ETag))
+    throw new InvalidOperationException("The ETag-protected replacement failed.");
+
+AtomicBatchResult<MyModel> patch = await galaxy
+    .Atomic("partition-key-value")
+    .Patch(
+        model.id,
+        operations => operations.Increment(item => item.Quantity, 1),
+        replaceOperation.ETag,
+        condition => condition.Equal(item => item.Status, "active"))
+    .ExecuteAsync();
+
+// Cross-partition work remains ordered per partition and uses four partition pipelines by default.
+BulkExecutionResult<MyModel> bulk = await galaxy
+    .Bulk()
+    .Create(new MyModel { /* partition-key properties and document fields */ })
+    .Delete("obsolete-id", ["another-partition-key"], eTag: null)
+    .ExecuteAsync(new BulkExecutionOptions { MaxConcurrency = 4 });
+```
+
+Atomic and bulk results include ordered per-operation status, ETag, request charge allocation, operation kind, id, and partition key. Service-side failures—including stale ETags (`412`)—are returned as structured results. Invalid input and transport failures throw `UniverseException`; cancellation throws `OperationCanceledException`. Patch predicates accept only typed member selectors and scalar values, so callers cannot inject raw Cosmos SQL.
+
 ### Deleting Documents
 
 ```csharp

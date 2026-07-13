@@ -31,6 +31,90 @@
             <param name="sequence">The partition key sequence number (1-3).</param>
             <param name="keyName">The name of the partition key.</param>
         </member>
+        <member name="T:Universe.BatchOperationKind">
+            <summary>Operation kinds supported by Cosmos transactional batches.</summary>
+        </member>
+        <member name="F:Universe.BatchOperationKind.Create">
+            <summary>Creates a document.</summary>
+        </member>
+        <member name="F:Universe.BatchOperationKind.Replace">
+            <summary>Replaces an existing document.</summary>
+        </member>
+        <member name="F:Universe.BatchOperationKind.Patch">
+            <summary>Applies JSON Patch operations to an existing document.</summary>
+        </member>
+        <member name="F:Universe.BatchOperationKind.Delete">
+            <summary>Deletes an existing document.</summary>
+        </member>
+        <member name="T:Universe.BatchOperationResult`1">
+            <summary>Result for one operation submitted through an atomic or bulk batch.</summary>
+        </member>
+        <member name="M:Universe.BatchOperationResult`1.#ctor(System.Int32,Universe.BatchOperationKind,System.String,System.Collections.Generic.IReadOnlyList{System.String},System.Net.HttpStatusCode,System.String,System.Double,System.Boolean,`0)">
+            <summary>Result for one operation submitted through an atomic or bulk batch.</summary>
+        </member>
+        <member name="T:Universe.AtomicBatchResult`1">
+            <summary>Result of one same-partition transactional batch.</summary>
+        </member>
+        <member name="M:Universe.AtomicBatchResult`1.#ctor(Universe.Response.Gravity,System.Boolean,System.Net.HttpStatusCode,System.Collections.Generic.IReadOnlyList{Universe.BatchOperationResult{`0}})">
+            <summary>Result of one same-partition transactional batch.</summary>
+        </member>
+        <member name="T:Universe.BulkExecutionOptions">
+            <summary>Configures cross-partition bulk execution.</summary>
+        </member>
+        <member name="P:Universe.BulkExecutionOptions.MaxConcurrency">
+            <summary>Gets or sets the maximum number of logical partition pipelines executing at once.</summary>
+        </member>
+        <member name="T:Universe.BulkExecutionResult`1">
+            <summary>Result of a cross-partition bulk execution.</summary>
+        </member>
+        <member name="M:Universe.BulkExecutionResult`1.#ctor(Universe.Response.Gravity,System.Boolean,System.Net.HttpStatusCode,System.Boolean,System.Int32,System.Int32,System.Collections.Generic.IReadOnlyList{Universe.BatchOperationResult{`0}})">
+            <summary>Result of a cross-partition bulk execution.</summary>
+        </member>
+        <member name="T:Universe.PatchBuilder`1">
+            <summary>Builds typed Cosmos patch operations from property selectors.</summary>
+        </member>
+        <member name="M:Universe.PatchBuilder`1.Set``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Sets a property, creating it when necessary.</summary>
+        </member>
+        <member name="M:Universe.PatchBuilder`1.Add``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds a property or array element.</summary>
+        </member>
+        <member name="M:Universe.PatchBuilder`1.Replace``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Replaces an existing property.</summary>
+        </member>
+        <member name="M:Universe.PatchBuilder`1.Remove(System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
+            <summary>Removes an existing property.</summary>
+        </member>
+        <member name="M:Universe.PatchBuilder`1.Increment``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Increments an integral or floating-point property.</summary>
+        </member>
+        <member name="T:Universe.PatchConditionBuilder`1">
+            <summary>Builds an injection-safe conditional predicate for a patch operation.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.And">
+            <summary>Connects the next predicate with AND.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.Or">
+            <summary>Connects the next predicate with OR.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.Equal``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds an equality predicate.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.NotEqual``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds an inequality predicate.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.GreaterThan``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds a greater-than predicate.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.GreaterThanOrEqual``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds a greater-than-or-equal predicate.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.LessThan``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds a less-than predicate.</summary>
+        </member>
+        <member name="M:Universe.PatchConditionBuilder`1.LessThanOrEqual``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},``0)">
+            <summary>Adds a less-than-or-equal predicate.</summary>
+        </member>
         <member name="T:Universe.Builder.ClusterBuilder">
             <summary>
             Builder for constructing a single cluster of Catalyst conditions.
@@ -1130,6 +1214,12 @@
         <member name="M:Universe.GalaxyBasic`1.#ctor(Microsoft.Azure.Cosmos.CosmosClient,System.String,System.String,System.Collections.Generic.IReadOnlyList{System.String},Universe.UniverseOptions,System.Boolean)">
             <summary>Create a new Galaxy with custom Universe options</summary>
         </member>
+        <member name="M:Universe.GalaxyBasic`1.Universe#Interfaces#IGalaxyBasic{T}#Atomic(System.String[])">
+            <inheritdoc/>
+        </member>
+        <member name="M:Universe.GalaxyBasic`1.Universe#Interfaces#IGalaxyBasic{T}#Bulk">
+            <inheritdoc/>
+        </member>
         <member name="T:Universe.GalaxyCore">
             <summary>
             Base class for Universe implementations.
@@ -1287,6 +1377,17 @@
         <member name="T:Universe.Interfaces.IGalaxyBasic`1">
             <summary></summary>
         </member>
+        <member name="M:Universe.Interfaces.IGalaxyBasic`1.Atomic(System.String[])">
+            <summary>
+            Starts an atomic transactional batch for one logical partition.
+            </summary>
+            <param name="partitionKeys">Exact order of the repository partition-key values.</param>
+        </member>
+        <member name="M:Universe.Interfaces.IGalaxyBasic`1.Bulk">
+            <summary>
+            Starts a cross-partition bulk batch. Operations in one partition are transactional; operations across partitions are not.
+            </summary>
+        </member>
         <member name="M:Universe.Interfaces.IGalaxyBasic`1.Create(`0)">
             <summary>
             Create a new model in the database
@@ -1401,6 +1502,47 @@
         </member>
         <member name="P:Universe.Response.Gravity.Query">
             <summary>Query that was executed</summary>
+        </member>
+        <member name="P:Universe.Response.Gravity.ETag">
+            <summary>
+            Gets the entity tag returned by a point read or write operation when Cosmos DB provides one.
+            </summary>
+        </member>
+        <member name="T:Universe.AtomicBatch`1">
+            <summary>Builds a same-partition ACID transaction.</summary>
+        </member>
+        <member name="M:Universe.AtomicBatch`1.Create(`0)">
+            <summary>Adds a create operation.</summary>
+        </member>
+        <member name="M:Universe.AtomicBatch`1.Replace(`0,System.String)">
+            <summary>Adds an ETag-aware replacement operation.</summary>
+        </member>
+        <member name="M:Universe.AtomicBatch`1.Patch(System.String,System.Action{Universe.PatchBuilder{`0}},System.String,System.Action{Universe.PatchConditionBuilder{`0}})">
+            <summary>Adds an ETag-aware conditional patch operation.</summary>
+        </member>
+        <member name="M:Universe.AtomicBatch`1.Delete(System.String,System.String)">
+            <summary>Adds an ETag-aware deletion operation.</summary>
+        </member>
+        <member name="M:Universe.AtomicBatch`1.ExecuteAsync(System.Threading.CancellationToken)">
+            <summary>Executes all operations as one same-partition Cosmos transaction.</summary>
+        </member>
+        <member name="T:Universe.BulkBatch`1">
+            <summary>Builds independently transactional operations across logical partitions.</summary>
+        </member>
+        <member name="M:Universe.BulkBatch`1.Create(`0)">
+            <summary>Adds a create operation. The partition key is derived from the model.</summary>
+        </member>
+        <member name="M:Universe.BulkBatch`1.Replace(`0,System.String)">
+            <summary>Adds a replacement operation. The partition key is derived from the model.</summary>
+        </member>
+        <member name="M:Universe.BulkBatch`1.Patch(System.String,System.String[],System.Action{Universe.PatchBuilder{`0}},System.String,System.Action{Universe.PatchConditionBuilder{`0}})">
+            <summary>Adds a patch operation. Partition keys are required because no model is supplied.</summary>
+        </member>
+        <member name="M:Universe.BulkBatch`1.Delete(System.String,System.String[],System.String)">
+            <summary>Adds a delete operation. Partition keys are required because no model is supplied.</summary>
+        </member>
+        <member name="M:Universe.BulkBatch`1.ExecuteAsync(Universe.BulkExecutionOptions,System.Threading.CancellationToken)">
+            <summary>Executes ordered partition pipelines with bounded cross-partition concurrency.</summary>
         </member>
         <member name="T:Universe.UniverseOptions">
             <summary>
