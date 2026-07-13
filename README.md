@@ -206,12 +206,16 @@ AtomicBatchResult<MyModel> atomic = await galaxy
     .Replace(model, read.ETag)
     .ExecuteAsync();
 
+BatchOperationResult<MyModel> replaceOperation = atomic.Operations.Single();
+if (!atomic.Succeeded || !replaceOperation.Succeeded || string.IsNullOrWhiteSpace(replaceOperation.ETag))
+    throw new InvalidOperationException("The ETag-protected replacement failed.");
+
 AtomicBatchResult<MyModel> patch = await galaxy
     .Atomic("partition-key-value")
     .Patch(
         model.id,
-        patch => patch.Increment(item => item.Quantity, 1),
-        atomic.Operations.Single().ETag,
+        operations => operations.Increment(item => item.Quantity, 1),
+        replaceOperation.ETag,
         condition => condition.Equal(item => item.Status, "active"))
     .ExecuteAsync();
 

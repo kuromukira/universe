@@ -31,7 +31,11 @@ public class Example17_AtomicOperations(IGalaxy<MyObject> galaxy) : ExampleBase(
                 .Replace(item, created.ETag)
                 .ExecuteAsync();
 
-            string replacementETag = replace.Operations.Single().ETag;
+            BatchOperationResult<MyObject> replaceOperation = replace.Operations.Single();
+            if (!replace.Succeeded || !replaceOperation.Succeeded || string.IsNullOrWhiteSpace(replaceOperation.ETag))
+                throw new InvalidOperationException("The ETag-protected replacement failed.");
+
+            string replacementETag = replaceOperation.ETag;
             AtomicBatchResult<MyObject> patch = await galaxy
                 .Atomic(item.Category, item.Code)
                 .Patch(

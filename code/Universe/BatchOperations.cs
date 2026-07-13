@@ -87,6 +87,8 @@ public sealed class PatchBuilder<T>
         return value switch
         {
             byte or sbyte or short or ushort or int or uint or long => Add(PatchOperation.Increment(path, Convert.ToInt64(value)), value),
+            ulong increment when increment <= long.MaxValue => Add(PatchOperation.Increment(path, (long)increment), value),
+            ulong => throw new UniverseException("Patch increments cannot exceed Int64.MaxValue."),
             float or double or decimal => Add(PatchOperation.Increment(path, Convert.ToDouble(value)), value),
             _ => throw new UniverseException("Patch increments require an integral or floating-point value.")
         };

@@ -53,6 +53,29 @@ public sealed class BatchBuilderTests
     }
 
     [Fact]
+    public void PatchConditionBuilder_EscapesInjectionShapedStringValues()
+    {
+        PatchConditionBuilder<BatchEntity> builder = new(JsonNamingPolicy.CamelCase);
+
+        builder.Equal(entity => entity.DisplayName, "\" OR 1 = 1 --");
+
+        Assert.Equal(
+            "FROM c WHERE c[\"display_name\"] = \"\\u0022 OR 1 = 1 --\"",
+            builder.Build());
+    }
+
+    [Fact]
+    public void PatchBuilder_HandlesUlongIncrementsWithinInt64Range()
+    {
+        PatchBuilder<BatchEntity> builder = new(JsonNamingPolicy.CamelCase);
+
+        builder.Increment(entity => entity.Metadata.UnsignedScore, (ulong)long.MaxValue);
+
+        Assert.Single(builder.Operations);
+        Assert.Throws<UniverseException>(() => builder.Increment(entity => entity.Metadata.UnsignedScore, ulong.MaxValue));
+    }
+
+    [Fact]
     public void PatchBuilder_RejectsUnsupportedSelectorAndEleventhOperation()
     {
         PatchBuilder<BatchEntity> selector = new(JsonNamingPolicy.CamelCase);
@@ -79,6 +102,7 @@ public sealed class BatchBuilderTests
     private sealed record BatchMetadata
     {
         public int Score { get; set; }
+        public ulong UnsignedScore { get; set; }
         public string Legacy { get; set; }
     }
 }
