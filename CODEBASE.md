@@ -974,6 +974,8 @@ Example sequencing:
 - `Storage/SqliteStatisticsStorageTests.cs`: SQLite persistence behavior.
 - `Caching/DocumentCacheTests.cs`: cache key hashing, TTL, eviction, cloning, and query-key normalization behavior.
 - `Caching/DocumentCacheRepositoryTests.cs`: opt-in repository cache behavior using fake Cosmos SDK abstractions.
+- `Batch/BatchExecutionTests.cs`: in-memory atomic/bulk execution, rollback, ETags, chunking, concurrency, partial success, cancellation, and cache behavior.
+- `Batch/LegacyInterfaceCompatibilityTests.cs`: default-interface compatibility for implementations built around the pre-batch `IGalaxyBasic<T>` contract.
 - `Tuner/QueryTunerTests.cs`: recommendation and persistence behavior.
 - `Tuner/QueryTunerPerformanceTests.cs`: tuner performance checks.
 - `Helpers/TestStatisticsFactory.cs`: shared test statistics builders.

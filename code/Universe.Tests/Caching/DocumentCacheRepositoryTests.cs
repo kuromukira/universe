@@ -66,25 +66,6 @@ public sealed class DocumentCacheRepositoryTests
     }
 
     [Fact]
-    public async Task AtomicCreate_ExecutesOneBatchAndUpdatesPointCacheAfterCommit()
-    {
-        FakeContainer container = new();
-        TestGalaxy repo = new(container, new UniverseOptions().WithAutoProvisioning(false).WithDocumentCache());
-        CacheEntity entity = new() { TenantId = "tenant-1", Name = "atomic" };
-
-        AtomicBatchResult<CacheEntity> result = await repo.Atomic("tenant-1").Create(entity).ExecuteAsync(TestContext.Current.CancellationToken);
-        (Gravity cachedGravity, CacheEntity cached) = await repo.PointGet(entity.id, "tenant-1");
-
-        Assert.True(result.Succeeded);
-        Assert.Single(result.Operations);
-        Assert.Equal(3.5, result.Gravity.RU);
-        Assert.Equal(1, container.TransactionalBatchCalls);
-        Assert.Equal(0, cachedGravity.RU);
-        Assert.Equal("atomic", cached.Name);
-        Assert.Equal(0, container.ReadItemCalls);
-    }
-
-    [Fact]
     public async Task QueryGet_CacheEnabled_UsesStableKeyAcrossGeneratedCatalystIds()
     {
         FakeContainer container = new()
@@ -200,9 +181,6 @@ public sealed class DocumentCacheRepositoryTests
         public Task<Gravity> RemoveEntity(string id, string tenantId)
             => ((IGalaxyBasic<CacheEntity>)this).Remove(id, tenantId);
 
-        public AtomicBatch<CacheEntity> Atomic(string tenantId)
-            => ((IGalaxyBasic<CacheEntity>)this).Atomic(tenantId);
-
         private static CosmosClient CreateClient()
             => new(
                 "https://localhost:8081",
@@ -225,7 +203,6 @@ public sealed class DocumentCacheRepositoryTests
         public IReadOnlyList<CacheEntity> QueryItems { get; set; } = [];
         public int ReadItemCalls { get; private set; }
         public int QueryCalls { get; private set; }
-        public int TransactionalBatchCalls { get; private set; }
 
         public override string Id => "container";
         public override Database Database => throw new NotSupportedException();
@@ -254,10 +231,7 @@ public sealed class DocumentCacheRepositoryTests
             => Task.FromResult<ItemResponse<T>>(new FakeItemResponse<T>(item, 5.5));
 
         public override TransactionalBatch CreateTransactionalBatch(PartitionKey partitionKey)
-        {
-            TransactionalBatchCalls++;
-            return new FakeTransactionalBatch();
-        }
+            => throw new NotSupportedException();
 
         public override Task<ContainerResponse> ReadContainerAsync(ContainerRequestOptions requestOptions = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public override Task<ResponseMessage> ReadContainerStreamAsync(ContainerRequestOptions requestOptions = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -331,25 +305,4 @@ public sealed class DocumentCacheRepositoryTests
         public override IEnumerator<T> GetEnumerator() => items.GetEnumerator();
     }
 
-    private sealed class FakeTransactionalBatch : TransactionalBatch
-    {
-        public override TransactionalBatch CreateItem<T>(T item, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch CreateItemStream(Stream streamPayload, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch ReadItem(string id, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch UpsertItem<T>(T item, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch UpsertItemStream(Stream streamPayload, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch ReplaceItem<T>(string id, T item, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch ReplaceItemStream(string id, Stream streamPayload, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch DeleteItem(string id, TransactionalBatchItemRequestOptions requestOptions = null) => this;
-        public override TransactionalBatch PatchItem(string id, IReadOnlyList<PatchOperation> patchOperations, TransactionalBatchPatchItemRequestOptions requestOptions = null) => this;
-        public override Task<TransactionalBatchResponse> ExecuteAsync(CancellationToken cancellationToken = default) => Task.FromResult<TransactionalBatchResponse>(new FakeTransactionalBatchResponse());
-        public override Task<TransactionalBatchResponse> ExecuteAsync(TransactionalBatchRequestOptions requestOptions, CancellationToken cancellationToken = default) => Task.FromResult<TransactionalBatchResponse>(new FakeTransactionalBatchResponse());
-    }
-
-    private sealed class FakeTransactionalBatchResponse : TransactionalBatchResponse
-    {
-        public override bool IsSuccessStatusCode => true;
-        public override HttpStatusCode StatusCode => HttpStatusCode.OK;
-        public override double RequestCharge => 3.5;
-    }
 }

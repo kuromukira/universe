@@ -9,12 +9,16 @@ public interface IGalaxyBasic<T> where T : ICosmicEntity
     /// Starts an atomic transactional batch for one logical partition.
     /// </summary>
     /// <param name="partitionKeys">Exact order of the repository partition-key values.</param>
-    AtomicBatch<T> Atomic(params string[] partitionKeys);
+    /// <remarks>The default implementation throws <see cref="NotSupportedException"/> for compatibility with implementations that predate batch operations.</remarks>
+    AtomicBatch<T> Atomic(params string[] partitionKeys)
+        => throw new NotSupportedException("This IGalaxyBasic implementation does not support atomic batch operations.");
 
     /// <summary>
     /// Starts a cross-partition bulk batch. Operations in one partition are transactional; operations across partitions are not.
     /// </summary>
-    BulkBatch<T> Bulk();
+    /// <remarks>The default implementation throws <see cref="NotSupportedException"/> for compatibility with implementations that predate batch operations.</remarks>
+    BulkBatch<T> Bulk()
+        => throw new NotSupportedException("This IGalaxyBasic implementation does not support bulk batch operations.");
 
     /// <summary>
     /// Create a new model in the database

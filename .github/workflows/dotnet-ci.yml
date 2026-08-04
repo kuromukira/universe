@@ -43,3 +43,15 @@ jobs:
       - name: Test
         working-directory: ./code/
         run: dotnet test --filter "Category!=Performance" --verbosity normal
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.x'
+          dotnet-quality: 'preview'
+      - name: Pack and validate compatibility
+        run: dotnet pack code/Universe/UniverseQuery.csproj -c Release

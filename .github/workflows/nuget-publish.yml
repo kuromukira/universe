@@ -3,42 +3,65 @@ name: .NET
 on:
   push:
     branches:
-      - 'prod'
-      - 'beta'
+      - prod
+      - beta
 
 permissions:
   contents: read
 
+concurrency:
+  group: nuget-publish-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   publish:
-    name: Build, Pack & Publish NuGet
+    name: Build, Test, Pack & Publish NuGet
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    
-    # Use specific .NET Version
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: 10.x
-        
-    # Restore
-    - name: Restore dependencies
-      run: |
-        cd ./code
-        dotnet restore
-      
-    # Build
-    - name: Build
-      run: |
-        cd ./code
-        dotnet build --no-restore
+      - uses: actions/checkout@v6
 
-    # Pack
-    - name: Pack
-      run:
-        dotnet pack code/Universe/UniverseQuery.csproj -c Release
-      
-    # Publish
-    - name: Publish
-      run: dotnet nuget push /home/runner/work/universe/universe/code/Universe/bin/Release/UniverseQuery.*.nupkg --api-key ${{secrets.NUGET_KEY}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.x
+
+      - name: Validate branch version
+        shell: bash
+        run: |
+          package_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' VERSION)
+          project_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' code/Universe/UniverseQuery.csproj)
+          if [[ -z "$package_version" ]]; then
+            echo "VERSION does not contain a package version."
+            exit 1
+          fi
+          if [[ "$package_version" != "$project_version" ]]; then
+            echo "VERSION and UniverseQuery.csproj must contain the same package version."
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" == "beta" && "$package_version" != *-* ]]; then
+            echo "The beta branch requires a prerelease package version."
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" == "prod" && "$package_version" == *-* ]]; then
+            echo "The prod branch requires a stable package version."
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+
+      - name: Restore dependencies
+        working-directory: ./code
+        run: dotnet restore
+
+      - name: Build release
+        working-directory: ./code
+        run: dotnet build -c Release --no-restore
+
+      - name: Test release
+        working-directory: ./code
+        run: dotnet test -c Release --no-build --filter "Category!=Performance" --verbosity normal
+
+      - name: Pack and validate compatibility
+        run: dotnet pack code/Universe/UniverseQuery.csproj -c Release --no-build --no-restore
+
+      - name: Publish
+        run: dotnet nuget push "code/Universe/bin/Release/UniverseQuery.${PACKAGE_VERSION}.nupkg" --api-key ${{ secrets.NUGET_KEY }} --source "https://api.nuget.org/v3/index.json"

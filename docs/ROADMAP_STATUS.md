@@ -119,7 +119,7 @@ Preferred future direction:
 
 ### 3.1 Enhanced Bulk Operation Support
 
-Status: complete in `3.5.0-preview.1`.
+Status: complete in `3.5.0-preview.2`.
 
 Implemented:
 
@@ -130,7 +130,7 @@ Implemented:
 
 ### 3.2 Atomic Operations
 
-Status: complete in `3.5.0-preview.1`.
+Status: complete in `3.5.0-preview.2`.
 
 Implemented:
 
@@ -165,9 +165,14 @@ Remaining scope:
 
 ## Verification
 
-Current local verification for this audit:
+Transactional behavior is verified with a deterministic in-memory Cosmos harness. It covers atomic commit and rollback, ETag failures, chunking, bounded concurrency, partial success, cancellation, request options, and cache invalidation without creating or connecting to Cosmos DB resources.
+
+Current local verification:
 
 ```bash
 cd code
 dotnet test --no-restore --filter "Category!=Performance"
+dotnet pack Universe/UniverseQuery.csproj -c Release --no-restore
 ```
+
+Release packing validates the public package API against `UniverseQuery` `3.4.1`.

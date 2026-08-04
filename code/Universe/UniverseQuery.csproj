@@ -21,14 +21,16 @@
 		<RepositoryType>Git</RepositoryType>
 		<Authors>norarrsgd</Authors>
 		<Product>Universe</Product>
-		<Version>3.5.0-preview.1</Version>
+		<Version>3.5.0-preview.2</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageReleaseNotes>
 			View release on
-			https://github.com/norarrsgd/universe/releases/tag/untagged-cdcf4202c2656450c07b
+			https://github.com/norarrsgd/universe/releases/tag/universe-3.5.0-preview.2
 		</PackageReleaseNotes>
-		<AssemblyVersion>3.5.0.1</AssemblyVersion>
-		<FileVersion>3.5.0.1</FileVersion>
+		<AssemblyVersion>3.5.0.2</AssemblyVersion>
+		<FileVersion>3.5.0.2</FileVersion>
+		<EnablePackageValidation>true</EnablePackageValidation>
+		<PackageValidationBaselineVersion>3.4.1</PackageValidationBaselineVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
