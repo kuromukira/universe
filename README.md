@@ -229,6 +229,8 @@ BulkExecutionResult<MyModel> bulk = await galaxy
 
 Atomic and bulk results include ordered per-operation status, ETag, request charge allocation, operation kind, id, and partition key. Service-side failures—including stale ETags (`412`)—are returned as structured results. Invalid input and transport failures throw `UniverseException`; cancellation throws `OperationCanceledException`. Patch predicates accept only typed member selectors and scalar values, so callers cannot inject raw Cosmos SQL.
 
+The transactional execution suite uses a deterministic in-memory Cosmos harness to verify atomic rollback, optimistic concurrency, chunking, bounded cross-partition concurrency, partial success, cancellation, request options, and cache invalidation. The test and release workflows do not create or connect to Cosmos DB resources.
+
 ### Deleting Documents
 
 ```csharp
