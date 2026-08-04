@@ -162,7 +162,7 @@ public sealed class BatchExecutionTests
     [Fact]
     public async Task Bulk_RespectsConcurrencyAndReportsCrossPartitionPartialSuccess()
     {
-        InMemoryCosmosContainer<BatchEntity> container = new() { ExecutionDelay = TimeSpan.FromMilliseconds(40) };
+        InMemoryCosmosContainer<BatchEntity> container = new() { ExecutionReleaseThreshold = 2 };
         BatchEntity duplicate = Entity("duplicate", "tenant-bad", 1, "existing");
         container.Seed(duplicate);
         TestGalaxy repository = CreateRepository(container, cache: true);

@@ -19,6 +19,7 @@ internal sealed class InMemoryCosmosContainer<T> : Container where T : class, IC
 
     private readonly object _sync = new();
     private readonly Dictionary<string, StoredDocument> _documents = [];
+    private readonly TaskCompletionSource _executionGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentQueue<System.Exception> _transportFailures = [];
     private int _activeExecutions;
     private int _etagSequence;
@@ -27,6 +28,7 @@ internal sealed class InMemoryCosmosContainer<T> : Container where T : class, IC
 
     internal List<InMemoryBatchExecution<T>> Executions { get; } = [];
     internal TimeSpan ExecutionDelay { get; set; }
+    internal int ExecutionReleaseThreshold { get; set; } = 1;
     internal Func<T, string, bool> PatchConditionEvaluator { get; set; }
     internal int MaxConcurrentExecutions => _maxConcurrentExecutions;
     internal int ReadItemCalls => _readItemCalls;
@@ -71,6 +73,10 @@ internal sealed class InMemoryCosmosContainer<T> : Container where T : class, IC
         UpdateMaxConcurrency(active);
         try
         {
+            if (active >= ExecutionReleaseThreshold)
+                _executionGate.TrySetResult();
+            await _executionGate.Task.WaitAsync(cancellationToken);
+
             if (ExecutionDelay > TimeSpan.Zero)
                 await Task.Delay(ExecutionDelay, cancellationToken);
 

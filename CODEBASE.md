@@ -201,14 +201,22 @@ The test project is the fastest feedback loop for library behavior that does not
 
 ```text
 code/Universe.Tests/
+|-- Batch/
+|   |-- BatchBuilderTests.cs
+|   |-- BatchExecutionTests.cs
+|   `-- LegacyInterfaceCompatibilityTests.cs
 |-- Builder/
 |   |-- NamingPolicyQueryTests.cs
 |   |-- OrbitQueryTests.cs
 |   |-- QueryTypeDetectorTests.cs
 |   `-- ProjectionSelectTests.cs
+|-- Caching/
+|   |-- DocumentCacheRepositoryTests.cs
+|   `-- DocumentCacheTests.cs
 |-- Extensions/
 |   `-- PartitionKeyExtensionTests.cs
 |-- Helpers/
+|   |-- InMemoryCosmosContainer.cs
 |   `-- TestStatisticsFactory.cs
 |-- Storage/
 |   |-- FileStatisticsStorageTests.cs

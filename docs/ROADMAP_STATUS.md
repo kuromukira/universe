@@ -171,7 +171,7 @@ Current local verification:
 
 ```bash
 cd code
-dotnet test --no-restore --filter "Category!=Performance"
+dotnet test -c Release --no-restore --filter "Category!=Performance"
 dotnet pack Universe/UniverseQuery.csproj -c Release --no-restore
 ```
 
