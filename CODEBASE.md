@@ -1040,6 +1040,7 @@ Repository workflow from existing instructions:
 - GitHub Actions build the .NET solution on push.
 - NuGet publishing is handled by release workflow.
 - Semgrep scans run on PRs and commits.
+- Aikido workflow findings are remediated by disabling persisted Git credentials on the affected checkout steps.
 - After every commit or before pushing, run local CodeRabbit review when available:
 
 ```bash
