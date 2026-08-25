@@ -362,3 +362,5 @@ netcore/obj/
 *.cache
 
 *.vscode
+
+.codegraph/
